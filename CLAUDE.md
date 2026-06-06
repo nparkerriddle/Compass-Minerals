@@ -16,7 +16,9 @@ Internal workforce tracker for YES's Compass Minerals onsite. Replaces the `Comp
 |-------|------|
 | Framework | React 19 + Vite 8 |
 | Styling | Tailwind CSS v4 (light + dark mode) |
-| State / persistence | Zustand v5 with `persist` (localStorage) |
+| State | Zustand v5 with `persist` |
+| **Persistence** | **Server-side — Flask + SQLite via `/api/state` (NO localStorage)** |
+| Backend / deploy | Flask + gunicorn on Render (`app.py`, `render.yaml`) |
 | Charts | Recharts 3 |
 | Tables | TanStack Table v8 |
 | Build target | ES2020 |
@@ -26,29 +28,45 @@ Internal workforce tracker for YES's Compass Minerals onsite. Replaces the `Comp
 ## Setup
 ```bash
 npm install
-npm run extract-data   # OPTIONAL — parse Compass Tracker.xlsx → src/data/compass-data.json (seed data)
-npm run dev            # dev server at localhost:5173
-npm run build          # production build → dist/
-npm run lint           # eslint
+npm run build          # builds the React app into static/ (served by Flask)
+
+pip install -r requirements.txt
+python app.py          # Flask on http://localhost:5000  (serves static/ + /api)
+```
+Front-end dev with hot reload (optional): run `python app.py` (backend) and
+`npm run dev` in another terminal — Vite (5173) proxies `/api` to Flask (5000).
+
+```bash
+npm run extract-data   # OPTIONAL — parse Compass Tracker.xlsx → src/data/compass-data.json (seed)
+npm run lint
 ```
 
-> The app **builds and runs without any data file** — it falls back to an empty
-> dashboard you can populate through the UI. `extract-data` is only needed to
-> seed it from the spreadsheet.
+---
+
+## Persistence — server-side, nothing local
+**All dashboard data lives on the server. Nothing is saved in the browser.**
+- The Zustand store persists through a custom storage adapter (`src/lib/serverStorage.js`)
+  that GET/PUTs the whole state to **`/api/state`** instead of localStorage.
+- Flask (`app.py`) stores it in **SQLite** (`compass.db`). Set `DATA_DIR` to a
+  persistent disk (see `render.yaml`) so data survives redeploys.
+- In plain `npm run dev` with no backend, the adapter fails quietly — the app
+  runs but doesn't persist (still nothing written locally).
+
+## Seed data
+1. Place `Compass Tracker.xlsx` in the parent folder, run `npm run extract-data`
+   → writes `src/data/compass-data.json` (gitignored, PII). Bundled as the
+   in-memory seed; falls back to empty `src/lib/sampleData.js` if absent.
+2. On load the store seeds from that, then hydrates from the server. The server
+   is the source of truth once data has been saved to it.
 
 ---
 
-## Data Flow
-1. **Seed (optional):** place an updated `Compass Tracker.xlsx` in the parent `YES Projects/` folder and run `npm run extract-data`. This writes `src/data/compass-data.json` (gitignored — contains PII).
-2. **Load:** on first run the Zustand store seeds itself from that JSON if present (via `import.meta.glob`, so a missing file does not break the build), otherwise from the empty `src/lib/sampleData.js`.
-3. **Edit & persist:** every section is full CRUD. Changes are saved to `localStorage` under the key `compass-dashboard-v1`. Re-running `extract-data` does **not** overwrite a user's existing local data — the seed only applies on first load / cleared storage.
-
----
-
-## Deployment
-- `npm run build` → zip the `dist/` folder → admin imports to the company server.
-- It's a static SPA; no server or API key required.
-- Because data lives in each browser's localStorage, the dashboard is per-device. (Future: a shared backend — see Roadmap.)
+## Deployment (Render, like flex-dashboard)
+- Handoff is a **git clone** of this repo. The built front-end is committed in
+  `static/`, so no Node build step is needed on the server.
+- `render.yaml` defines a Python web service: `pip install -r requirements.txt`
+  then `gunicorn app:app`, with a persistent disk mounted at `/var/data`.
+- After any front-end change: `npm run build` (rebuilds `static/`) and commit it.
 
 ---
 
@@ -59,7 +77,7 @@ npm run lint           # eslint
 ---
 
 ## Sensitive Data
-- Worker names, wages, phone numbers, and attendance points are stored locally.
+- Worker names, wages, phone numbers, and attendance points are stored **server-side** in SQLite (`compass.db` on the persistent disk). There is no auth yet — **add a login/gate before exposing the URL.**
 - `src/data/` and `public/data/` are gitignored — never commit extracted data.
 - `src/lib/sampleData.js` is the only committed "data" and contains **no PII** (empty arrays).
 
@@ -96,13 +114,18 @@ src/
     attendance.js          — attendance points POLICY (single source of truth)
     departments.js         — department→photo map + site photo gallery
     nav.jsx                — nav SINGLE SOURCE OF TRUTH: ICONS + SECTIONS used by Sidebar + Home
+    serverStorage.js       — Zustand storage adapter → /api/state (replaces localStorage)
     sampleData.js          — empty seed used when no extracted data is present
   store/useAppStore.js     — Zustand store (all data + actions + persistence)
 public/
   images/brand/            — Compass logo (compass-logo.png, used in sidebar + hero)
   images/departments/      — real Ogden site photos (haul, loader, salt plant), web-compressed
+static/                    — BUILT front-end (committed; Flask serves it). Regenerate with `npm run build`.
 scripts/
   extract-data.mjs         — parses Compass Tracker.xlsx → src/data/compass-data.json
+app.py                     — Flask backend: serves static/ + /api/state (SQLite)
+requirements.txt           — Python deps (flask, gunicorn)
+render.yaml                — Render deploy config (gunicorn + persistent disk)
 ```
 
 > **Seed data from SharePoint (2026-06-06):** Staffing Plan (Actual vs AOP) and
@@ -146,13 +169,18 @@ form state resets cleanly on each open. Don't reintroduce a long-lived modal wit
 ---
 
 ## Roadmap (surfaced as "Coming soon" in Settings)
-- Export / import data (JSON backup)
-- Password gate / user roles
-- Shared backend so data isn't per-device (candidate: Avionte Bold API for live headcount)
+- **Auth / login gate + roles** (next priority — data is server-side and currently unguarded)
+- Real Kronos parsing in Payroll (hours by employee × cost center)
+- One-time "import the tracker" step to seed the server on first deploy
+- Avionte Bold API for live headcount
 
 ---
 
 ## Changelog
+### v1.1.0 — 2026-06-06 (server-side persistence)
+- **Replaced localStorage with server-side persistence.** Added a Flask backend (`app.py`) + SQLite via `/api/state`; Zustand persists through `src/lib/serverStorage.js`. All CRUD unchanged — data now shared on the server, nothing in the browser. Deploys on Render (`render.yaml`); front-end committed in `static/`.
+- Refreshed data from the current (Jun 6) tracker: off-season — 5 active, 43 haul workers furloughed (now populated in the Furlough section); `Waitlist-Furlough` sheet renamed to `Waitlist`. Raised attendance "at risk" to 7+ points.
+
 ### v1.0.0 — 2026-06-06
 - Hardened for handoff: builds with no data file; fixed modal Edit (add/edit forms now populate correctly); completed dark mode across the shared component library; removed dead code (old Dashboard/react-query); lint clean.
 - Attendance now scored against the real Compass points policy (3/5/7/8 + 2 NCNS + 180-day halving), centralized in `lib/attendance.js`.

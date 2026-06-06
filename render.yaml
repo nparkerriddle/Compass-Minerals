@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: compass-minerals-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      # Store the SQLite DB on the persistent disk so data survives redeploys.
+      - key: DATA_DIR
+        value: /var/data
+      # Signs the session cookie — Render generates a strong random value.
+      - key: SECRET_KEY
+        generateValue: true
+      # Shared password to open the dashboard. CHANGE THIS in the Render dashboard.
+      - key: DASHBOARD_PASSWORD
+        value: compass2026
+    # A persistent disk keeps server-side data across deploys (required, since
+    # the SQLite file is the source of truth once the app is live).
+    disk:
+      name: compass-data
+      mountPath: /var/data
+      sizeGB: 1

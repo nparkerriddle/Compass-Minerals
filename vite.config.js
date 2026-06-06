@@ -10,7 +10,16 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  // Dev only: forward /api to the Flask backend if it's running locally.
+  server: {
+    proxy: {
+      '/api': 'http://localhost:5000',
+    },
+  },
   build: {
+    // Flask serves the built app from static/ (committed so a git clone deploys).
+    outDir: 'static',
+    emptyOutDir: true,
     target: 'es2020',
     rollupOptions: {
       output: {

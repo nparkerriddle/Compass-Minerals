@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { sampleData } from '../lib/sampleData'
+import { serverStorage } from '../lib/serverStorage'
 
 // Load real extracted data if present. The file is gitignored (worker PII),
 // so on a fresh clone it won't exist — import.meta.glob resolves to an empty
@@ -38,6 +39,18 @@ function initOpenings() {
   return (compassData.openings || []).map(o => ({
     id: makeId(), department: o.department || '', position: o.position || '',
     dateReceived: o.dateReceived || '', openingsCount: o.openings || 1, notes: '',
+  }))
+}
+
+function initFurloughWorkers() {
+  return (compassData.furloughWorkers || []).map(w => ({
+    id: makeId(), ...splitName(w.name),
+    department: w.department || '', shift: w.shift || '', supervisor: w.supervisor || '',
+    furloughDate: '', expectedReturn: '', actualReturn: '',
+    season: '2025-2026', status: 'On Furlough',
+    leaveFormComplete: false, returnFormComplete: false,
+    workerIntent: 'Unknown', clientDecision: 'Pending',
+    notes: w.seasonsWorked ? `Seasons worked: ${w.seasonsWorked}` : '',
   }))
 }
 
@@ -154,7 +167,7 @@ export const useAppStore = create(
       workers: initWorkers(),
       openings: initOpenings(),
       waitlist: initWaitlist(),
-      furloughWorkers: [],
+      furloughWorkers: initFurloughWorkers(),
       attendanceRecords: initAttendanceRecords(),
       breakfastItems: initBreakfastItems(),
       breakfastNotes: initBreakfastNotes(),
@@ -221,7 +234,12 @@ export const useAppStore = create(
       }),
     }),
     {
-      name: 'compass-dashboard-v1',
+      name: 'compass-dashboard-v2',
+      // Persist to the server (SQLite via /api/state), never to the browser.
+      storage: createJSONStorage(() => serverStorage),
+      // Don't fetch server state until the user is authenticated — LoginGate
+      // calls useAppStore.persist.rehydrate() after a successful login.
+      skipHydration: true,
       // Don't persist navigation state
       partialize: (state) => ({
         workers: state.workers,
