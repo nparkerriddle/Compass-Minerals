@@ -201,6 +201,51 @@ export const useAppStore = create(
       deleteWorker: (id) => set((s) => ({ workers: s.workers.filter((w) => w.id !== id), activityLog: withLog(s, 'Deleted', 'Worker', nameOf(s.workers.find((w) => w.id === id))) })),
       deleteWorkers: (ids) => set((s) => ({ workers: s.workers.filter((w) => !ids.includes(w.id)), activityLog: withLog(s, 'Deleted', 'Workers', `${ids.length} records`) })),
 
+      // ── Status transitions (move a person between stages) ──
+      // Active → Termed/DNA (in place)
+      terminateWorker: (id, { status = 'Termed', termReason = '' } = {}) => set((s) => ({
+        workers: s.workers.map((w) => w.id === id ? { ...w, status, termReason } : w),
+        activityLog: withLog(s, 'Moved', 'Worker', `${nameOf(s.workers.find((w) => w.id === id))} → ${status}`),
+      })),
+      // Termed/DNA → Active (rehire, in place)
+      rehireWorker: (id) => set((s) => ({
+        workers: s.workers.map((w) => w.id === id ? { ...w, status: 'Active', termReason: '' } : w),
+        activityLog: withLog(s, 'Rehired', 'Worker', nameOf(s.workers.find((w) => w.id === id))),
+      })),
+      // Active → Furlough (transfer)
+      moveWorkerToFurlough: (id) => set((s) => {
+        const w = s.workers.find((x) => x.id === id)
+        if (!w) return {}
+        const today = new Date().toISOString().slice(0, 10)
+        const f = {
+          id: makeId(), firstName: w.firstName, lastName: w.lastName,
+          department: w.department || '', shift: w.shift || '', supervisor: w.supervisor || '',
+          furloughDate: today, expectedReturn: '', actualReturn: '', season: '2025-2026',
+          status: 'On Furlough', leaveFormComplete: false, returnFormComplete: false,
+          workerIntent: 'Unknown', clientDecision: 'Pending', wage: w.wage || 0, notes: '',
+        }
+        return { workers: s.workers.filter((x) => x.id !== id), furloughWorkers: [...s.furloughWorkers, f], activityLog: withLog(s, 'Moved', 'Worker', `${nameOf(w)} → Furlough`) }
+      }),
+      // Active → Waitlist (transfer)
+      moveWorkerToWaitlist: (id) => set((s) => {
+        const w = s.workers.find((x) => x.id === id)
+        if (!w) return {}
+        const e = { id: makeId(), firstName: w.firstName, lastName: w.lastName, department: w.department || '', preferredShift: w.shift || '', phone: '', status: 'Wait List', notes: '' }
+        return { workers: s.workers.filter((x) => x.id !== id), waitlist: [...s.waitlist, e], activityLog: withLog(s, 'Moved', 'Worker', `${nameOf(w)} → Waitlist`) }
+      }),
+      // Waitlist → Active (placement)
+      placeWaitlistEntry: (id) => set((s) => {
+        const e = s.waitlist.find((x) => x.id === id)
+        if (!e) return {}
+        const today = new Date().toISOString().slice(0, 10)
+        const w = {
+          id: makeId(), firstName: e.firstName, lastName: e.lastName,
+          department: e.department || '', shift: e.preferredShift || '', supervisor: '',
+          startDate: today, daysWorked: 0, wage: 0, status: 'Active', termReason: '', notes: 'Placed from waitlist',
+        }
+        return { waitlist: s.waitlist.filter((x) => x.id !== id), workers: [...s.workers, w], activityLog: withLog(s, 'Placed', 'Waitlist', `${nameOf(e)} → Active`) }
+      }),
+
       // Openings
       addOpening: (o) => set((s) => { const n = { ...o, id: makeId() }; return { openings: [...s.openings, n], activityLog: withLog(s, 'Added', 'Opening', `${n.department} ${n.position || ''}`.trim()) } }),
       updateOpening: (id, u) => set((s) => ({ openings: s.openings.map((o) => o.id === id ? { ...o, ...u } : o), activityLog: withLog(s, 'Edited', 'Opening', (s.openings.find((o) => o.id === id) || {}).department || '') })),

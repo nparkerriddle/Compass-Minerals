@@ -26,6 +26,7 @@ export default function WaitlistPage() {
   const updateWaitlistEntry = useAppStore((s) => s.updateWaitlistEntry)
   const deleteWaitlistEntry = useAppStore((s) => s.deleteWaitlistEntry)
   const deleteWaitlistEntries = useAppStore((s) => s.deleteWaitlistEntries)
+  const placeWaitlistEntry = useAppStore((s) => s.placeWaitlistEntry)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -68,6 +69,12 @@ export default function WaitlistPage() {
       id: 'actions', size: 80, header: '',
       cell: ({ row }) => (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => placeWaitlistEntry(row.original.id)} title="Place → Active roster"
+            className="p-1.5 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5l-7.5 7.5L7.5 11.25M3 12a9 9 0 1018 0 9 9 0 00-18 0z" />
+            </svg>
+          </button>
           <button onClick={() => { setEditing(row.original); setModalOpen(true) }}
             className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -83,7 +90,7 @@ export default function WaitlistPage() {
         </div>
       ),
     },
-  ], [])
+  ], [placeWaitlistEntry])
 
   const table = useReactTable({
     data: filtered, columns,
