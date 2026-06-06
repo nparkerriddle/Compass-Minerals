@@ -77,7 +77,7 @@ export default function AttendancePage() {
   // KPI counts (across all records, not filtered) — driven by the points policy
   const totalWorkers = attendanceRecords.length
   const tierOf       = (r) => attendanceStatus(r).tier
-  const atWarning    = attendanceRecords.filter((r) => tierOf(r) >= 1).length
+  const atRisk       = attendanceRecords.filter((r) => tierOf(r) >= 3).length
   const writtenUp    = attendanceRecords.filter((r) => tierOf(r) >= 2).length
   const termRisk     = attendanceRecords.filter((r) => tierOf(r) === 4).length
   const ncnsAutoTerm = attendanceRecords.filter((r) => attendanceStatus(r).reason === 'ncns').length
@@ -188,7 +188,7 @@ export default function AttendancePage() {
         {[
           { label: 'Total Workers',  value: totalWorkers, sub: 'on file',          color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800', val: 'text-blue-700 dark:text-blue-400' },
           { label: 'Avg Points',     value: avgPts,       sub: 'per worker',        color: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',     val: 'text-gray-700 dark:text-gray-300' },
-          { label: 'At Risk',        value: atWarning,    sub: 'verbal & up (3+)',  color: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800', val: 'text-amber-700 dark:text-amber-400' },
+          { label: 'At Risk',        value: atRisk,       sub: 'suspension+ (7+)',  color: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800', val: 'text-amber-700 dark:text-amber-400' },
           { label: 'Written & Up',   value: writtenUp,    sub: '5+ pts',            color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', val: 'text-orange-700 dark:text-orange-400' },
           { label: 'Termination',    value: termRisk,     sub: '8+ pts',            color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',      val: 'text-red-700 dark:text-red-400' },
           { label: 'Auto-Term',      value: ncnsAutoTerm, sub: '2 NCNS',            color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',      val: 'text-red-700 dark:text-red-400' },

@@ -41,7 +41,7 @@ export function attendanceStatus(record) {
   return { ...tier, points, raw, ncns, halved, reason: 'points' }
 }
 
-// "At risk" = anything past good standing (verbal warning and up).
+// "At risk" = suspension level and up (7+ effective points, or 2 NCNS).
 export function isAtRisk(record) {
-  return attendanceStatus(record).tier >= 1
+  return attendanceStatus(record).tier >= 3
 }

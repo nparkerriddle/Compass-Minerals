@@ -115,7 +115,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiTile label="Termed"          value={termed.length}      sub="this season"          color="red"    onClick={() => navigate('attrition')} />
         <KpiTile label="DNA"             value={dna.length}         sub="did not advance"      color="purple" onClick={() => navigate('attrition')} />
-        <KpiTile label="At Risk"         value={atRisk.length}      sub="3+ attendance pts"    color="amber"  onClick={() => navigate('attendance')} />
+        <KpiTile label="At Risk"         value={atRisk.length}      sub="7+ attendance pts"    color="amber"  onClick={() => navigate('attendance')} />
       </div>
 
       {/* Charts */}
