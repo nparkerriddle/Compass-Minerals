@@ -1,1 +1,0 @@
-var e={};e.version=`0.18.5`;var t=new Date(1899,11,30,0,0,0),n=new Date;t.getTime()+(n.getTimezoneOffset()-t.getTimezoneOffset())*6e4,e.version;

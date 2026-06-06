@@ -13,6 +13,7 @@ import FurloughPage from './features/furlough/FurloughPage'
 import AttendancePage from './features/attendance/AttendancePage'
 import AttritionPage from './features/attrition/AttritionPage'
 import SupervisorsPage from './features/supervisors/SupervisorsPage'
+import TrendsPage from './features/trends/TrendsPage'
 import SafetyPage from './features/safety/SafetyPage'
 import BreakfastPage from './features/breakfast/BreakfastPage'
 import ReportsPage from './features/reports/ReportsPage'
@@ -36,6 +37,7 @@ const PAGES = {
   attendance: AttendancePage,
   attrition: AttritionPage,
   supervisors: SupervisorsPage,
+  trends: TrendsPage,
   safety: SafetyPage,
   breakfast: BreakfastPage,
   reports: ReportsPage,
