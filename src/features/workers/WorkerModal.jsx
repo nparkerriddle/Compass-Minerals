@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from '../../components/ui/Modal'
 import { DEPARTMENTS, SHIFTS, STATUSES, TERM_REASONS } from '../../lib/constants'
+import { useAppStore } from '../../store/useAppStore'
 
 const EMPTY = {
   firstName: '', lastName: '', department: '', shift: '',
@@ -25,6 +26,14 @@ const selectCls = inputCls
 export default function WorkerModal({ isOpen, onClose, onSave, initial = null }) {
   const [form, setForm] = useState(initial ?? EMPTY)
   const [errors, setErrors] = useState({})
+  const workers = useAppStore((s) => s.workers)
+
+  // Soft duplicate-name warning (doesn't block saving)
+  const dupName = !!form.firstName.trim() && !!form.lastName.trim() && workers.some((w) =>
+    w.id !== initial?.id &&
+    w.firstName.trim().toLowerCase() === form.firstName.trim().toLowerCase() &&
+    w.lastName.trim().toLowerCase() === form.lastName.trim().toLowerCase()
+  )
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -88,6 +97,12 @@ export default function WorkerModal({ isOpen, onClose, onSave, initial = null })
             {errors.lastName && <p className="text-xs text-red-500 mt-0.5">{errors.lastName}</p>}
           </Field>
         </div>
+        {dupName && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 -mt-1">
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+            A worker with this name already exists — you can still save if intended.
+          </p>
+        )}
 
         {/* Department + Shift */}
         <div className="grid grid-cols-2 gap-4">
