@@ -25,4 +25,5 @@ export const sampleData = {
   deptAttrition: [],
   termedWorkers: [],
   rosterWorkers: [],
+  incidents: [],
 }

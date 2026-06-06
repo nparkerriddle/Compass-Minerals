@@ -42,6 +42,15 @@ function initOpenings() {
   }))
 }
 
+function initIncidents() {
+  return (compassData.incidents || []).map(x => ({
+    id: makeId(), ...splitName(x.name),
+    date: x.date || '', time: x.time || '',
+    department: x.department || '', shift: x.shift || '', supervisor: x.supervisor || '',
+    daysWorked: x.daysWorked || 0, outcome: x.outcome || '', notes: x.notes || '',
+  }))
+}
+
 function initFurloughWorkers() {
   return (compassData.furloughWorkers || []).map(w => ({
     id: makeId(), ...splitName(w.name),
@@ -179,6 +188,7 @@ export const useAppStore = create(
       breakfastNotes: initBreakfastNotes(),
       staffingPlan: initStaffingPlan(),
       financials: initFinancials(),
+      incidents: initIncidents(),
       activityLog: [],
       darkMode: false,
 
@@ -253,6 +263,11 @@ export const useAppStore = create(
       updateFinancialMonth: (id, u) => set((s) => ({ financials: s.financials.map((m) => m.id === id ? { ...m, ...u } : m) })),
       deleteFinancialMonth: (id) => set((s) => ({ financials: s.financials.filter((m) => m.id !== id) })),
 
+      // Safety / incidents
+      addIncident: (x) => set((s) => { const n = { ...x, id: makeId() }; return { incidents: [...s.incidents, n], activityLog: withLog(s, 'Added', 'Incident', nameOf(n)) } }),
+      updateIncident: (id, u) => set((s) => ({ incidents: s.incidents.map((i) => i.id === id ? { ...i, ...u } : i), activityLog: withLog(s, 'Edited', 'Incident', nameOf(s.incidents.find((i) => i.id === id))) })),
+      deleteIncident: (id) => set((s) => ({ incidents: s.incidents.filter((i) => i.id !== id), activityLog: withLog(s, 'Deleted', 'Incident', nameOf(s.incidents.find((i) => i.id === id))) })),
+
       // Settings
       toggleDarkMode: () => set((s) => {
         const next = !s.darkMode
@@ -275,6 +290,7 @@ export const useAppStore = create(
         breakfastNotes: state.breakfastNotes,
         staffingPlan: state.staffingPlan,
         financials: state.financials,
+        incidents: state.incidents,
         activityLog: state.activityLog,
         bookmarks: state.bookmarks,
         darkMode: state.darkMode,

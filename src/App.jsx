@@ -10,6 +10,8 @@ import WaitlistPage from './features/waitlist/WaitlistPage'
 import FurloughPage from './features/furlough/FurloughPage'
 import AttendancePage from './features/attendance/AttendancePage'
 import AttritionPage from './features/attrition/AttritionPage'
+import SupervisorsPage from './features/supervisors/SupervisorsPage'
+import SafetyPage from './features/safety/SafetyPage'
 import BreakfastPage from './features/breakfast/BreakfastPage'
 import ReportsPage from './features/reports/ReportsPage'
 import QBRPage from './features/qbr/QBRPage'
@@ -29,6 +31,8 @@ const PAGES = {
   furlough: FurloughPage,
   attendance: AttendancePage,
   attrition: AttritionPage,
+  supervisors: SupervisorsPage,
+  safety: SafetyPage,
   breakfast: BreakfastPage,
   reports: ReportsPage,
   qbr: QBRPage,
