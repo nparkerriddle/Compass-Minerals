@@ -24,6 +24,9 @@ function initWorkers() {
     department: w.department || '', shift: w.shift || '', supervisor: w.supervisor || '',
     startDate: '', daysWorked: w.daysWorked || 0, wage: w.wage || 0,
     status: 'Active', termReason: '', notes: '',
+    photoDone: w.photoDone === 'Yes', truckSignOff: w.truckSignOff === 'Yes',
+    stockpileTesting: w.stockpileTesting === 'Yes', operatorSignOff: w.operatorSignOff === 'Yes',
+    physicalExpiration: w.physicalExpiration || '',
   }))
   const termed = (compassData.termedWorkers || []).map(w => ({
     id: makeId(), ...splitName(w.name),

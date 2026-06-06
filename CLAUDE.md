@@ -94,29 +94,37 @@ src/
     shared/                — component library (KpiCard, DataTable, StatusBadge, etc.) — all dark-mode aware
     ui/Modal.jsx           — portal modal
   features/
-    home/                  — branded hero landing page + bookmarkable section cards (default page)
+    home/                  — branded hero landing + "Needs Attention" alerts + bookmarkable cards (default page)
     overview/              — KPI tiles + charts
     departments/           — site photos + live headcount/openings per department
-    payroll/               — drag-and-drop Kronos report reader (parse + preview; processing TBD)
-    workers/               — active/termed/DNA workers (CRUD)
+    workers/               — ACTIVE roster only (CRUD) + Move actions (→ furlough/waitlist/term/DNA)
+    terminations/          — Termed & DNA (CRUD) + Rehire (→ active)
+    onboarding/            — new-hire sign-off checklist for active workers
     staffing/              — headcount Actual vs AOP plan (CRUD)
     openings/              — open requisitions (CRUD)
-    waitlist/              — waitlist candidates (CRUD)
-    furlough/              — furlough tracking (CRUD)
+    waitlist/              — waitlist candidates (CRUD) + Place (→ active)
+    furlough/              — furlough tracking (CRUD) + Return (→ active)
     attendance/            — attendance points + policy standing (CRUD)
-    attrition/             — termination analytics
+    attrition/             — termination analytics (charts)
+    supervisors/           — per-supervisor rollups (headcount/attendance/incidents)
+    safety/                — injuries & incidents (CRUD)
     breakfast/             — Spring Breakfast supplies + notes (CRUD)
     reports/               — printable Weekly Summary for client HR (print/PDF + copy-for-email)
+    qbr/                   — QBR builder → branded PowerPoint export (pptxgenjs)
     financials/            — monthly P&L trend (CRUD, marked Internal)
-    settings/              — dark mode + roadmap toggles
+    payroll/               — drag-and-drop Kronos report reader (parse + preview; processing TBD)
+    activity/              — audit/activity log of changes
+    settings/              — dark mode, sign-in info
   lib/
     constants.js           — departments, shifts, statuses, term reasons
     attendance.js          — attendance points POLICY (single source of truth)
+    alerts.js              — computes Home "Needs Attention" items
     departments.js         — department→photo map + site photo gallery
+    exportCsv.js           — CSV export helper (Workers/Attendance/Safety/Terminations)
     nav.jsx                — nav SINGLE SOURCE OF TRUTH: ICONS + SECTIONS used by Sidebar + Home
-    serverStorage.js       — Zustand storage adapter → /api/state (replaces localStorage)
+    serverStorage.js       — Zustand storage adapter → /api/state (debounced + save status)
     sampleData.js          — empty seed used when no extracted data is present
-  store/useAppStore.js     — Zustand store (all data + actions + persistence)
+  store/useAppStore.js     — Zustand store (data + CRUD + status transitions + activity log)
 public/
   images/brand/            — Compass logo (compass-logo.png, used in sidebar + hero)
   images/departments/      — real Ogden site photos (haul, loader, salt plant), web-compressed
@@ -184,6 +192,11 @@ has no usernames, passwords, or roles by design.
 ---
 
 ## Changelog
+### v1.2.0 — 2026-06-06 (features wave + workforce lifecycle)
+- New sections: **QBR builder** (PowerPoint export), **Activity Log**, **Safety & Incidents**, **Supervisors**, **Terminations**, **Onboarding**. Home **alerts** panel. **CSV export** on key tables.
+- **Workforce lifecycle:** Workers = active only; status transitions (Active ⇄ Furlough/Waitlist/Termed/DNA; Rehire; Place; Return). All changes recorded in the activity log.
+- Auth removed — access now via company Microsoft sign-in (hosting-enforced).
+
 ### v1.1.0 — 2026-06-06 (server-side persistence)
 - **Replaced localStorage with server-side persistence.** Added a Flask backend (`app.py`) + SQLite via `/api/state`; Zustand persists through `src/lib/serverStorage.js`. All CRUD unchanged — data now shared on the server, nothing in the browser. Deploys on Render (`render.yaml`); front-end committed in `static/`.
 - Refreshed data from the current (Jun 6) tracker: off-season — 5 active, 43 haul workers furloughed (now populated in the Furlough section); `Waitlist-Furlough` sheet renamed to `Waitlist`. Raised attendance "at risk" to 7+ points.
