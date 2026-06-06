@@ -38,6 +38,13 @@ const haulWorkers = haulRaw
     daysWorked: Number(r['Days Worked']) || 0,
     wage: Number(r['Wage']) || 0,
     status: 'Active',
+    photoDone: String(r['Photo Done'] || '').trim(),
+    truckSignOff: String(r['Haul Truck Sign Off'] || '').trim(),
+    stockpileTesting: String(r['Passed Stockplie Testing'] || '').trim(),
+    operatorSignOff: String(r['Operator Sign Off'] || '').trim(),
+    physicalExpiration: r['Physical Expiration']
+      ? (typeof r['Physical Expiration'] === 'number' ? XLSX.SSF.format('m/d/yyyy', r['Physical Expiration']) : String(r['Physical Expiration']).trim())
+      : '',
   }))
   .filter(r => r.name && r.name !== ' ');
 
@@ -53,6 +60,13 @@ const otherWorkers = otherRaw
     daysWorked: Number(r['Days Worked']) || 0,
     wage: Number(r['Wage']) || 0,
     status: 'Active',
+    photoDone: String(r['Photo Done'] || '').trim(),
+    truckSignOff: String(r['Haul Truck Sign Off'] || '').trim(),
+    stockpileTesting: String(r['Passed Stockplie Testing'] || '').trim(),
+    operatorSignOff: String(r['Operator Sign Off'] || '').trim(),
+    physicalExpiration: r['Physical Expiration']
+      ? (typeof r['Physical Expiration'] === 'number' ? XLSX.SSF.format('m/d/yyyy', r['Physical Expiration']) : String(r['Physical Expiration']).trim())
+      : '',
   }))
   .filter(r => r.name && r.name !== ' ');
 
