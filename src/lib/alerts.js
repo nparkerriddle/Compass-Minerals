@@ -1,0 +1,35 @@
+// Computes actionable "needs attention" items from current dashboard data.
+import { attendanceStatus } from './attendance'
+
+function daysSince(dateStr) {
+  if (!dateStr) return null
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return null
+  return Math.floor((Date.now() - d.getTime()) / 86_400_000)
+}
+
+export function computeAlerts({ attendanceRecords = [], openings = [], furloughWorkers = [], staffingPlan = [] }) {
+  const alerts = []
+
+  // ── Attendance escalations ──
+  const term = attendanceRecords.filter((r) => attendanceStatus(r).tier === 4).length
+  const susp = attendanceRecords.filter((r) => attendanceStatus(r).tier === 3).length
+  if (term) alerts.push({ id: 'att-term', severity: 'high', title: `${term} worker${term > 1 ? 's' : ''} at termination level`, detail: '8+ attendance points or 2 NCNS', page: 'attendance' })
+  if (susp) alerts.push({ id: 'att-susp', severity: 'medium', title: `${susp} at suspension level`, detail: '7+ attendance points', page: 'attendance' })
+
+  // ── Openings aging ──
+  const aging = openings.filter((o) => (daysSince(o.dateReceived) ?? 0) > 30).length
+  if (aging) alerts.push({ id: 'open-aging', severity: 'medium', title: `${aging} opening${aging > 1 ? 's' : ''} open 30+ days`, detail: 'Sourcing may need escalation', page: 'openings' })
+
+  // ── Furlough decisions / intent ──
+  const pending = furloughWorkers.filter((w) => w.status === 'On Furlough' && w.clientDecision === 'Pending').length
+  if (pending) alerts.push({ id: 'fur-pending', severity: 'medium', title: `${pending} furloughed awaiting client decision`, detail: 'Return approval still pending', page: 'furlough' })
+  const unknown = furloughWorkers.filter((w) => w.status === 'On Furlough' && w.workerIntent === 'Unknown').length
+  if (unknown) alerts.push({ id: 'fur-intent', severity: 'info', title: `${unknown} furloughed with unknown return intent`, detail: 'Confirm who plans to return next season', page: 'furlough' })
+
+  // ── Staffing vs plan ──
+  const gap = staffingPlan.reduce((s, r) => s + Math.max(0, (r.target || 0) - (r.actual || 0)), 0)
+  if (gap) alerts.push({ id: 'staff-gap', severity: 'medium', title: `${gap} headcount short of plan`, detail: 'Below the AOP target', page: 'staffing' })
+
+  return alerts
+}
