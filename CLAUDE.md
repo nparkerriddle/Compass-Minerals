@@ -77,7 +77,7 @@ npm run lint
 ---
 
 ## Sensitive Data
-- Worker names, wages, phone numbers, and attendance points are stored **server-side** in SQLite (`compass.db` on the persistent disk). There is no auth yet — **add a login/gate before exposing the URL.**
+- Worker names, wages, phone numbers, and attendance points are stored **server-side** in SQLite (`compass.db` on the persistent disk). The app has no login of its own — **the hosting must enforce the Microsoft sign-in gate** (see Auth / access) before this is reachable.
 - `src/data/` and `public/data/` are gitignored — never commit extracted data.
 - `src/lib/sampleData.js` is the only committed "data" and contains **no PII** (empty arrays).
 
@@ -168,9 +168,16 @@ form state resets cleanly on each open. Don't reintroduce a long-lived modal wit
 
 ---
 
-## Roadmap (surfaced as "Coming soon" in Settings)
-- **Auth / login gate + roles** (next priority — data is server-side and currently unguarded)
-- Real Kronos parsing in Payroll (hours by employee × cost center)
+## Auth / access
+**No app-level login.** Access is gated upstream by the company's **Microsoft sign-in** —
+users must be logged into their M365/Microsoft account to reach the dashboard. The app
+has no usernames, passwords, or roles by design.
+- ⚠️ The hosting must enforce the Microsoft gate (Azure App Service Easy Auth / Entra ID,
+  or an identity-aware proxy). The app's `/api/state` is otherwise open to anyone who can
+  reach the URL — don't expose it on plain public hosting without that gate.
+
+## Roadmap
+- Real Kronos parsing in Payroll (hours by employee × cost center) — pending a sample report
 - One-time "import the tracker" step to seed the server on first deploy
 - Avionte Bold API for live headcount
 

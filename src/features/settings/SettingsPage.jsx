@@ -82,30 +82,10 @@ export default function SettingsPage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-5">
         <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pt-4 pb-2">Access</h2>
         <SettingRow
-          label="Password Protection"
-          description="A shared password is required to open the dashboard."
+          label="Sign-in"
+          description="Access is controlled by your company Microsoft account — no separate dashboard login."
         >
-          <span className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-medium px-2 py-0.5 rounded-full">Enabled</span>
-        </SettingRow>
-        <SettingRow
-          label="Sign Out"
-          description="End your session on this device."
-        >
-          <button
-            onClick={async () => {
-              try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }) } catch { /* ignore */ }
-              window.location.reload()
-            }}
-            className="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            Sign out
-          </button>
-        </SettingRow>
-        <SettingRow
-          label="User Roles"
-          description="Restrict edit access by role (recruiter, manager, read-only)."
-        >
-          <span className="text-xs text-gray-400 dark:text-gray-500">Coming soon</span>
+          <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-medium px-2 py-0.5 rounded-full">Microsoft</span>
         </SettingRow>
       </div>
 

@@ -8,12 +8,10 @@ services:
       # Store the SQLite DB on the persistent disk so data survives redeploys.
       - key: DATA_DIR
         value: /var/data
-      # Signs the session cookie — Render generates a strong random value.
-      - key: SECRET_KEY
-        generateValue: true
-      # Shared password to open the dashboard. CHANGE THIS in the Render dashboard.
-      - key: DASHBOARD_PASSWORD
-        value: compass2026
+    # NOTE: access control is expected to be enforced by the hosting layer via the
+    # company's Microsoft sign-in (Azure Easy Auth / Entra / identity-aware proxy).
+    # The app itself has no login. If deploying on plain Render, put it behind such
+    # a gate, or it will be publicly reachable.
     # A persistent disk keeps server-side data across deploys (required, since
     # the SQLite file is the source of truth once the app is live).
     disk:

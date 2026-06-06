@@ -14,28 +14,19 @@ data survives redeploys; defaults to the app folder for local runs.
 """
 import os
 import sqlite3
-from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory, session
+from flask import Flask, request, jsonify, send_from_directory
 
 app = Flask(__name__, static_folder="static")
-# Signs the session cookie. Set a real value in production (render.yaml).
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
 DATA_DIR = os.environ.get("DATA_DIR", os.path.dirname(__file__))
 DB_PATH = os.path.join(DATA_DIR, "compass.db")
 STATE_KEY = "compass-dashboard"
 
-# Single shared password to open the dashboard. Override in production.
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "compass2026")
-
-
-def login_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("authed"):
-            return jsonify({"error": "unauthorized"}), 401
-        return fn(*args, **kwargs)
-    return wrapper
+# NOTE: No app-level login. Access is gated upstream by the company's Microsoft
+# sign-in (the dashboard is only reachable to authenticated M365 users), so this
+# app does not implement usernames/passwords. The HOSTING must enforce that gate
+# (e.g. Azure App Service Easy Auth / Entra ID, or an identity-aware proxy) —
+# otherwise the data API below is reachable by anyone who can hit the URL.
 
 
 def get_db():
@@ -48,31 +39,8 @@ def get_db():
     return conn
 
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
-@app.route("/api/login", methods=["POST"])
-def login():
-    body = request.get_json(silent=True) or {}
-    if body.get("password") == DASHBOARD_PASSWORD:
-        session.permanent = True
-        session["authed"] = True
-        return jsonify({"ok": True})
-    return jsonify({"error": "invalid password"}), 401
-
-
-@app.route("/api/logout", methods=["POST"])
-def logout():
-    session.clear()
-    return jsonify({"ok": True})
-
-
-@app.route("/api/session")
-def session_status():
-    return jsonify({"authenticated": bool(session.get("authed"))})
-
-
-# ── Data API (auth required) ──────────────────────────────────────────────────
+# ── Data API ──────────────────────────────────────────────────────────────────
 @app.route("/api/state", methods=["GET"])
-@login_required
 def get_state():
     conn = get_db()
     row = conn.execute("SELECT v FROM app_state WHERE k = ?", (STATE_KEY,)).fetchone()
@@ -81,7 +49,6 @@ def get_state():
 
 
 @app.route("/api/state", methods=["PUT"])
-@login_required
 def put_state():
     body = request.get_json(silent=True) or {}
     value = body.get("value")
@@ -99,7 +66,6 @@ def put_state():
 
 
 @app.route("/api/state", methods=["DELETE"])
-@login_required
 def delete_state():
     conn = get_db()
     conn.execute("DELETE FROM app_state WHERE k = ?", (STATE_KEY,))
