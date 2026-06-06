@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { sampleData } from '../lib/sampleData'
 import { serverStorage } from '../lib/serverStorage'
+import { attendanceStatus } from '../lib/attendance'
 
 // Load real extracted data if present. The file is gitignored (worker PII),
 // so on a fresh clone it won't exist — import.meta.glob resolves to an empty
@@ -18,8 +19,8 @@ function splitName(fullName) {
 
 // ── Initial data loaders ──────────────────────────────────────────────────────
 
-function initWorkers() {
-  const active = (compassData.activeWorkers || []).map(w => ({
+function initWorkers(data = compassData) {
+  const active = (data.activeWorkers || []).map(w => ({
     id: makeId(), ...splitName(w.name),
     department: w.department || '', shift: w.shift || '', supervisor: w.supervisor || '',
     startDate: '', daysWorked: w.daysWorked || 0, wage: w.wage || 0,
@@ -28,7 +29,7 @@ function initWorkers() {
     stockpileTesting: w.stockpileTesting === 'Yes', operatorSignOff: w.operatorSignOff === 'Yes',
     physicalExpiration: w.physicalExpiration || '',
   }))
-  const termed = (compassData.termedWorkers || []).map(w => ({
+  const termed = (data.termedWorkers || []).map(w => ({
     id: makeId(), ...splitName(w.name),
     department: w.department || '', shift: '', supervisor: '',
     startDate: '', daysWorked: w.daysWorked || 0, wage: 0,
@@ -38,15 +39,15 @@ function initWorkers() {
   return [...active, ...termed]
 }
 
-function initOpenings() {
-  return (compassData.openings || []).map(o => ({
+function initOpenings(data = compassData) {
+  return (data.openings || []).map(o => ({
     id: makeId(), department: o.department || '', position: o.position || '',
     dateReceived: o.dateReceived || '', openingsCount: o.openings || 1, notes: '',
   }))
 }
 
-function initIncidents() {
-  return (compassData.incidents || []).map(x => ({
+function initIncidents(data = compassData) {
+  return (data.incidents || []).map(x => ({
     id: makeId(), ...splitName(x.name),
     date: x.date || '', time: x.time || '',
     department: x.department || '', shift: x.shift || '', supervisor: x.supervisor || '',
@@ -54,8 +55,8 @@ function initIncidents() {
   }))
 }
 
-function initFurloughWorkers() {
-  return (compassData.furloughWorkers || []).map(w => ({
+function initFurloughWorkers(data = compassData) {
+  return (data.furloughWorkers || []).map(w => ({
     id: makeId(), ...splitName(w.name),
     department: w.department || '', shift: w.shift || '', supervisor: w.supervisor || '',
     furloughDate: '', expectedReturn: '', actualReturn: '',
@@ -66,16 +67,16 @@ function initFurloughWorkers() {
   }))
 }
 
-function initWaitlist() {
-  return (compassData.waitlist || []).map(w => ({
+function initWaitlist(data = compassData) {
+  return (data.waitlist || []).map(w => ({
     id: makeId(), ...splitName(w.name),
     department: w.department || '', preferredShift: w.preferredShift || '',
     phone: '', status: w.status || 'Pending', notes: w.notes || '',
   }))
 }
 
-function initAttendanceRecords() {
-  return (compassData.rosterWorkers || []).map(w => ({
+function initAttendanceRecords(data = compassData) {
+  return (data.rosterWorkers || []).map(w => ({
     id: makeId(),
     ...splitName(w.name),
     department: w.department || '',
@@ -193,10 +194,41 @@ export const useAppStore = create(
       financials: initFinancials(),
       incidents: initIncidents(),
       activityLog: [],
+      snapshots: [],
       darkMode: false,
 
       // Activity log
       clearActivityLog: () => set({ activityLog: [] }),
+
+      // Trends — point-in-time snapshots of headline metrics
+      captureSnapshot: () => set((s) => {
+        const active = s.workers.filter((w) => w.status === 'Active')
+        const snap = {
+          id: makeId(),
+          date: new Date().toISOString().slice(0, 10),
+          label: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          active: active.length,
+          openPositions: s.openings.reduce((a, o) => a + (o.openingsCount || 1), 0),
+          waitlist: s.waitlist.length,
+          onFurlough: s.furloughWorkers.filter((w) => w.status === 'On Furlough').length,
+          termed: s.workers.filter((w) => w.status === 'Termed').length,
+          dna: s.workers.filter((w) => w.status === 'DNA').length,
+          atRisk: s.attendanceRecords.filter((r) => attendanceStatus(r).tier >= 3).length,
+        }
+        return { snapshots: [...s.snapshots, snap], activityLog: withLog(s, 'Captured', 'Snapshot', snap.label) }
+      }),
+      deleteSnapshot: (id) => set((s) => ({ snapshots: s.snapshots.filter((x) => x.id !== id) })),
+
+      // Refresh worker data from a freshly parsed Compass Tracker (in-app import)
+      importFromData: (data) => set((s) => ({
+        workers: initWorkers(data),
+        openings: initOpenings(data),
+        waitlist: initWaitlist(data),
+        furloughWorkers: initFurloughWorkers(data),
+        attendanceRecords: initAttendanceRecords(data),
+        incidents: initIncidents(data),
+        activityLog: withLog(s, 'Imported', 'Tracker', `${(data.activeWorkers || []).length} active workers`),
+      })),
 
       // Workers
       addWorker: (w) => set((s) => { const n = { ...w, id: makeId() }; return { workers: [...s.workers, n], activityLog: withLog(s, 'Added', 'Worker', nameOf(n)) } }),
@@ -340,6 +372,7 @@ export const useAppStore = create(
         financials: state.financials,
         incidents: state.incidents,
         activityLog: state.activityLog,
+        snapshots: state.snapshots,
         bookmarks: state.bookmarks,
         darkMode: state.darkMode,
       }),
