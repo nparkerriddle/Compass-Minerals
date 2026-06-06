@@ -1,11 +1,47 @@
 // Server-backed storage for the Zustand persist middleware.
 // All dashboard state is saved on the server (SQLite via /api/state) — NOT in
-// the browser. This is the single swap point that replaces localStorage.
+// the browser. Writes are debounced, and save status is published so the UI can
+// show a "Saving… / Saved" indicator.
 //
 // In `npm run dev` without the Flask backend running, the fetches fail quietly
 // and the app simply runs without persistence (still nothing saved locally).
 
 const ENDPOINT = '/api/state'
+const DEBOUNCE_MS = 600
+
+// ── Save-status pub/sub ───────────────────────────────────────────────────────
+let status = { state: 'idle', at: null } // idle | saving | saved | error
+const listeners = new Set()
+export const saveStatus = {
+  get: () => status,
+  subscribe: (fn) => { listeners.add(fn); return () => listeners.delete(fn) },
+}
+function setStatus(state) {
+  status = { state, at: Date.now() }
+  listeners.forEach((fn) => fn(status))
+}
+
+// ── Debounced writer ──────────────────────────────────────────────────────────
+let timer = null
+let pending = null
+async function flush() {
+  timer = null
+  const value = pending
+  pending = null
+  setStatus('saving')
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value }),
+    })
+    setStatus(res.ok ? 'saved' : 'error')
+  } catch {
+    // No backend (e.g. plain `vite` dev) — intentionally no localStorage fallback.
+    setStatus('idle')
+  }
+}
 
 export const serverStorage = {
   getItem: async () => {
@@ -19,17 +55,9 @@ export const serverStorage = {
     }
   },
   setItem: async (_name, value) => {
-    try {
-      await fetch(ENDPOINT, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value }),
-      })
-    } catch {
-      // No backend (e.g. plain `vite` dev) — intentionally do not fall back to
-      // localStorage. Persistence only happens when served by the Flask app.
-    }
+    pending = value
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(flush, DEBOUNCE_MS)
   },
   removeItem: async () => {
     try {

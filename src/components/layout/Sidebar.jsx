@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/useAppStore'
 import { isAtRisk } from '../../lib/attendance'
 import { ICONS, NAV_GROUPS } from '../../lib/nav.jsx'
+import SaveStatus from './SaveStatus'
 
 function NavButton({ id, label, isActive, badge, onClick }) {
   return (
@@ -83,6 +84,7 @@ export default function Sidebar({ currentPage, onNavigate }) {
       {/* Settings */}
       <div className="px-3 py-3 border-t border-white/10">
         <NavButton id="settings" label="Settings" isActive={currentPage === 'settings'} onClick={() => onNavigate('settings')} />
+        <SaveStatus />
       </div>
     </aside>
   )
