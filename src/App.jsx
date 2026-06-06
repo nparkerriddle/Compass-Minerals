@@ -12,6 +12,7 @@ import AttendancePage from './features/attendance/AttendancePage'
 import AttritionPage from './features/attrition/AttritionPage'
 import BreakfastPage from './features/breakfast/BreakfastPage'
 import ReportsPage from './features/reports/ReportsPage'
+import QBRPage from './features/qbr/QBRPage'
 import FinancialsPage from './features/financials/FinancialsPage'
 import PayrollPage from './features/payroll/PayrollPage'
 import SettingsPage from './features/settings/SettingsPage'
@@ -29,6 +30,7 @@ const PAGES = {
   attrition: AttritionPage,
   breakfast: BreakfastPage,
   reports: ReportsPage,
+  qbr: QBRPage,
   financials: FinancialsPage,
   payroll: PayrollPage,
   settings: SettingsPage,

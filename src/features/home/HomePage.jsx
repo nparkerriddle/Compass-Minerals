@@ -1,5 +1,12 @@
 import { useAppStore } from '../../store/useAppStore'
 import { NAV_GROUPS, ICONS, sectionById } from '../../lib/nav.jsx'
+import { computeAlerts } from '../../lib/alerts'
+
+const ALERT_STYLES = {
+  high: { dot: 'bg-red-500', chip: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20' },
+  medium: { dot: 'bg-amber-500', chip: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20' },
+  info: { dot: 'bg-blue-500', chip: 'border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/20' },
+}
 
 function StarButton({ active, onClick }) {
   return (
@@ -41,6 +48,11 @@ export default function HomePage() {
   const toggleBookmark = useAppStore((s) => s.toggleBookmark)
   const workers = useAppStore((s) => s.workers)
   const openings = useAppStore((s) => s.openings)
+  const attendanceRecords = useAppStore((s) => s.attendanceRecords)
+  const furloughWorkers = useAppStore((s) => s.furloughWorkers)
+  const staffingPlan = useAppStore((s) => s.staffingPlan)
+
+  const alerts = computeAlerts({ attendanceRecords, openings, furloughWorkers, staffingPlan })
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -80,6 +92,33 @@ export default function HomePage() {
       </div>
 
       <div className="p-6 sm:p-8 space-y-8">
+        {/* Needs attention */}
+        {alerts.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">Needs Attention</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {alerts.map((a) => {
+                const st = ALERT_STYLES[a.severity] || ALERT_STYLES.info
+                return (
+                  <button key={a.id} onClick={() => navigate(a.page)}
+                    className={`text-left rounded-xl border p-4 hover:shadow-md transition-all ${st.chip}`}>
+                    <div className="flex items-start gap-2.5">
+                      <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${st.dot}`} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{a.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{a.detail}</div>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Quick access (bookmarks) */}
         <section>
           <div className="flex items-center gap-2 mb-3">
