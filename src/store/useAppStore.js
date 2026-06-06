@@ -237,9 +237,6 @@ export const useAppStore = create(
       name: 'compass-dashboard-v2',
       // Persist to the server (SQLite via /api/state), never to the browser.
       storage: createJSONStorage(() => serverStorage),
-      // Don't fetch server state until the user is authenticated — LoginGate
-      // calls useAppStore.persist.rehydrate() after a successful login.
-      skipHydration: true,
       // Don't persist navigation state
       partialize: (state) => ({
         workers: state.workers,
