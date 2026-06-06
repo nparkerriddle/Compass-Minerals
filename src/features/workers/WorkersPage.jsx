@@ -316,13 +316,15 @@ export default function WorkersPage() {
         )}
       </div>
 
-      {/* Add/Edit modal */}
-      <WorkerModal
-        isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setEditing(null) }}
-        onSave={handleSave}
-        initial={editing}
-      />
+      {/* Add/Edit modal — mounted only while open so the form resets each time */}
+      {modalOpen && (
+        <WorkerModal
+          isOpen={modalOpen}
+          onClose={() => { setModalOpen(false); setEditing(null) }}
+          onSave={handleSave}
+          initial={editing}
+        />
+      )}
 
       {/* Delete confirmation */}
       {confirmDeleteIds && (

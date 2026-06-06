@@ -1,10 +1,17 @@
 import { useState } from 'react'
 import Modal from '../../components/ui/Modal'
 import { DEPARTMENTS, SHIFTS } from '../../lib/constants'
+import { attendanceStatus, POINTS_HALVE_DAYS } from '../../lib/attendance'
+
+const previewBadge = {
+  danger: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+  warning: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300',
+  success: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300',
+}
 
 const EMPTY = {
   firstName: '', lastName: '', department: '', shift: '', supervisor: '',
-  attendancePoints: 0, wage: 0, notes: '',
+  attendancePoints: 0, ncns: 0, daysOnAssignment: 0, wage: 0, notes: '',
 }
 
 const inputCls = 'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -24,8 +31,6 @@ export default function AttendanceModal({ isOpen, onClose, onSave, initial = nul
   const [form, setForm] = useState(initial ?? EMPTY)
   const [errors, setErrors] = useState({})
 
-  useState(() => { setForm(initial ?? EMPTY); setErrors({}) }, [initial, isOpen])
-
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
     if (errors[field]) setErrors((e) => ({ ...e, [field]: null }))
@@ -36,7 +41,13 @@ export default function AttendanceModal({ isOpen, onClose, onSave, initial = nul
     if (!form.firstName.trim()) e.firstName = 'Required'
     if (!form.lastName.trim()) e.lastName = 'Required'
     if (Object.keys(e).length) { setErrors(e); return }
-    onSave({ ...form, attendancePoints: Number(form.attendancePoints) || 0, wage: Number(form.wage) || 0 })
+    onSave({
+      ...form,
+      attendancePoints: Number(form.attendancePoints) || 0,
+      ncns: Number(form.ncns) || 0,
+      daysOnAssignment: Number(form.daysOnAssignment) || 0,
+      wage: Number(form.wage) || 0,
+    })
     setForm(EMPTY)
     setErrors({})
     onClose()
@@ -90,7 +101,7 @@ export default function AttendanceModal({ isOpen, onClose, onSave, initial = nul
           <input className={inputCls} value={form.supervisor} onChange={(e) => set('supervisor', e.target.value)} placeholder="Name" />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <Field label="Attendance Points">
             <input
               type="number" min="0" step="0.5"
@@ -99,15 +110,47 @@ export default function AttendanceModal({ isOpen, onClose, onSave, initial = nul
               onChange={(e) => set('attendancePoints', e.target.value)}
             />
           </Field>
-          <Field label="Wage ($/hr)">
+          <Field label="NCNS (no-call/no-show)">
             <input
-              type="number" min="0" step="0.25"
+              type="number" min="0" step="1"
               className={inputCls}
-              value={form.wage}
-              onChange={(e) => set('wage', e.target.value)}
+              value={form.ncns}
+              onChange={(e) => set('ncns', e.target.value)}
+            />
+          </Field>
+          <Field label="Days on Assignment">
+            <input
+              type="number" min="0" step="1"
+              className={inputCls}
+              value={form.daysOnAssignment}
+              onChange={(e) => set('daysOnAssignment', e.target.value)}
             />
           </Field>
         </div>
+
+        <Field label="Wage ($/hr)">
+          <input
+            type="number" min="0" step="0.25"
+            className={inputCls}
+            value={form.wage}
+            onChange={(e) => set('wage', e.target.value)}
+          />
+        </Field>
+
+        {/* Live status preview from the points policy */}
+        {(() => {
+          const st = attendanceStatus(form)
+          return (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500 dark:text-gray-400">Current standing:</span>
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${previewBadge[st.badge]}`}>{st.label}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {st.action}
+                {st.halved && ` · points halved (≥${POINTS_HALVE_DAYS} days): ${st.raw} → ${st.points}`}
+              </span>
+            </div>
+          )
+        })()}
 
         {/* Point scale reference */}
         <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-4 py-3">

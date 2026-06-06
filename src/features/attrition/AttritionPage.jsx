@@ -20,6 +20,18 @@ function ChartCard({ title, sub, children }) {
 
 export default function AttritionPage() {
   const workers = useAppStore((s) => s.workers)
+  const darkMode = useAppStore((s) => s.darkMode)
+
+  // Theme-aware chart colors (Recharts can't read Tailwind dark: classes)
+  const axisColor = darkMode ? '#9ca3af' : '#6b7280'
+  const gridColor = darkMode ? '#374151' : '#e5e7eb'
+  const tooltipStyle = {
+    fontSize: 12,
+    borderRadius: 8,
+    border: `1px solid ${gridColor}`,
+    background: darkMode ? '#1f2937' : '#ffffff',
+    color: darkMode ? '#e5e7eb' : '#111827',
+  }
 
   const termed = useMemo(() => workers.filter((w) => w.status === 'Termed'), [workers])
   const dna    = useMemo(() => workers.filter((w) => w.status === 'DNA'), [workers])
@@ -74,10 +86,10 @@ export default function AttritionPage() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={deptAttrition} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <Tooltip formatter={(v) => [v, 'Separations']} contentStyle={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: axisColor }} />
+                <YAxis type="category" dataKey="department" width={120} tick={{ fontSize: 11, fill: axisColor }} />
+                <Tooltip formatter={(v) => [v, 'Separations']} contentStyle={tooltipStyle} />
                 <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -90,10 +102,10 @@ export default function AttritionPage() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={termReasons.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis type="category" dataKey="reason" width={160} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: axisColor }} />
+                <YAxis type="category" dataKey="reason" width={160} tick={{ fontSize: 11, fill: axisColor }} />
+                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={tooltipStyle} />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                   {termReasons.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>

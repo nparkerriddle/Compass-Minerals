@@ -6,6 +6,7 @@ import {
 import { useAppStore } from '../../store/useAppStore'
 import AttendanceModal from './AttendanceModal'
 import { DEPARTMENTS } from '../../lib/constants'
+import { attendanceStatus, effectivePoints } from '../../lib/attendance'
 
 function IndeterminateCheckbox({ indeterminate, ...rest }) {
   const ref = useRef()
@@ -13,35 +14,31 @@ function IndeterminateCheckbox({ indeterminate, ...rest }) {
   return <input type="checkbox" ref={ref} className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500" {...rest} />
 }
 
-function getRisk(pts) {
-  if (pts >= 8) return { label: 'Term Risk', cls: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400', tier: 4 }
-  if (pts >= 7) return { label: 'Suspension', cls: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400', tier: 3 }
-  if (pts >= 5) return { label: 'Written Up', cls: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400', tier: 2 }
-  if (pts >= 3) return { label: 'Warning', cls: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400', tier: 1 }
-  if (pts > 0)  return { label: 'Low', cls: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400', tier: 0 }
-  return { label: 'Clear', cls: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400', tier: 0 }
+// Tailwind classes per policy badge token (from lib/attendance).
+const BADGE_CLS = {
+  danger: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+  warning: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+  success: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
 }
+const BAR_CLS = { 4: 'bg-red-500', 3: 'bg-orange-500', 2: 'bg-orange-400', 1: 'bg-amber-400', 0: 'bg-green-400' }
 
-function PtsBadge({ pts }) {
-  const risk = getRisk(pts)
-  const barColor =
-    risk.tier >= 4 ? 'bg-red-500' :
-    risk.tier >= 3 ? 'bg-orange-500' :
-    risk.tier >= 2 ? 'bg-orange-400' :
-    risk.tier >= 1 ? 'bg-yellow-400' :
-    'bg-green-400'
+function PtsBadge({ record }) {
+  const pts = effectivePoints(record)
+  const { tier, halved, raw } = attendanceStatus(record)
   const pct = Math.min(100, (pts / 8) * 100)
   return (
-    <div className="flex items-center gap-2 min-w-[80px]">
-      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 w-6 text-right shrink-0">{pts}</span>
+    <div className="flex items-center gap-2 min-w-[96px]">
+      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 w-10 text-right shrink-0 tabular-nums">
+        {pts}{halved && <span className="text-[10px] font-normal text-gray-400 ml-0.5" title={`Halved from ${raw} at 180+ days`}>½</span>}
+      </span>
       <div className="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full ${BAR_CLS[tier]}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
 }
 
-const RISK_FILTERS = ['All', 'Warning (3+)', 'Written Up (5+)', 'Term Risk (8+)']
+const RISK_FILTERS = ['All', 'Verbal (3+)', 'Written (5+)', 'Suspension (7+)', 'Termination (8+ / 2 NCNS)']
 
 export default function AttendancePage() {
   const attendanceRecords       = useAppStore((s) => s.attendanceRecords)
@@ -67,21 +64,24 @@ export default function AttendancePage() {
         if (!`${r.firstName} ${r.lastName}`.toLowerCase().includes(q)) return false
       }
       if (riskFilter !== 'All') {
-        const pts = r.attendancePoints || 0
-        if (riskFilter === 'Warning (3+)'   && pts < 3) return false
-        if (riskFilter === 'Written Up (5+)' && pts < 5) return false
-        if (riskFilter === 'Term Risk (8+)'  && pts < 8) return false
+        const { tier } = attendanceStatus(r)
+        if (riskFilter === 'Verbal (3+)'                && tier < 1) return false
+        if (riskFilter === 'Written (5+)'               && tier < 2) return false
+        if (riskFilter === 'Suspension (7+)'            && tier < 3) return false
+        if (riskFilter === 'Termination (8+ / 2 NCNS)'  && tier < 4) return false
       }
       return true
     })
   }, [attendanceRecords, deptFilter, search, riskFilter])
 
-  // KPI counts (across all records, not filtered)
+  // KPI counts (across all records, not filtered) — driven by the points policy
   const totalWorkers = attendanceRecords.length
-  const atWarning    = attendanceRecords.filter((r) => (r.attendancePoints || 0) >= 3 && (r.attendancePoints || 0) < 5).length
-  const writtenUp    = attendanceRecords.filter((r) => (r.attendancePoints || 0) >= 5 && (r.attendancePoints || 0) < 8).length
-  const termRisk     = attendanceRecords.filter((r) => (r.attendancePoints || 0) >= 8).length
-  const avgPts       = totalWorkers ? (attendanceRecords.reduce((s, r) => s + (r.attendancePoints || 0), 0) / totalWorkers).toFixed(1) : '0.0'
+  const tierOf       = (r) => attendanceStatus(r).tier
+  const atRisk       = attendanceRecords.filter((r) => tierOf(r) >= 3).length
+  const writtenUp    = attendanceRecords.filter((r) => tierOf(r) >= 2).length
+  const termRisk     = attendanceRecords.filter((r) => tierOf(r) === 4).length
+  const ncnsAutoTerm = attendanceRecords.filter((r) => attendanceStatus(r).reason === 'ncns').length
+  const avgPts       = totalWorkers ? (attendanceRecords.reduce((s, r) => s + effectivePoints(r), 0) / totalWorkers).toFixed(1) : '0.0'
 
   const columns = useMemo(() => [
     {
@@ -103,15 +103,25 @@ export default function AttendancePage() {
     },
     { accessorKey: 'supervisor', header: 'Supervisor', cell: ({ getValue }) => getValue() || <span className="text-gray-400">—</span> },
     {
-      accessorKey: 'attendancePoints', header: 'Points', size: 120,
-      cell: ({ getValue }) => <PtsBadge pts={getValue() || 0} />,
+      accessorKey: 'attendancePoints', header: 'Points', size: 130,
+      sortingFn: (a, b) => effectivePoints(a.original) - effectivePoints(b.original),
+      cell: ({ row }) => <PtsBadge record={row.original} />,
     },
     {
-      id: 'risk', header: 'Risk Level', size: 110,
-      accessorFn: (r) => r.attendancePoints || 0,
+      id: 'ncns', header: 'NCNS', size: 64,
+      accessorFn: (r) => r.ncns || 0,
       cell: ({ getValue }) => {
-        const { label, cls } = getRisk(getValue())
-        return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{label}</span>
+        const n = getValue()
+        if (!n) return <span className="text-gray-400">—</span>
+        return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${n >= 2 ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400'}`}>{n}</span>
+      },
+    },
+    {
+      id: 'risk', header: 'Standing', size: 130,
+      accessorFn: (r) => attendanceStatus(r).tier,
+      cell: ({ row }) => {
+        const { label, badge } = attendanceStatus(row.original)
+        return <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${BADGE_CLS[badge]}`}>{label}</span>
       },
     },
     {
@@ -174,13 +184,14 @@ export default function AttendancePage() {
       </div>
 
       {/* KPI tiles */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
           { label: 'Total Workers',  value: totalWorkers, sub: 'on file',          color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800', val: 'text-blue-700 dark:text-blue-400' },
           { label: 'Avg Points',     value: avgPts,       sub: 'per worker',        color: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',     val: 'text-gray-700 dark:text-gray-300' },
-          { label: 'At Warning',     value: atWarning,    sub: '3–4 pts',           color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800', val: 'text-yellow-700 dark:text-yellow-400' },
-          { label: 'Written Up',     value: writtenUp,    sub: '5–7 pts',           color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', val: 'text-orange-700 dark:text-orange-400' },
-          { label: 'Term Risk',      value: termRisk,     sub: '8+ pts',            color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',      val: 'text-red-700 dark:text-red-400' },
+          { label: 'At Risk',        value: atRisk,       sub: 'suspension+ (7+)',  color: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800', val: 'text-amber-700 dark:text-amber-400' },
+          { label: 'Written & Up',   value: writtenUp,    sub: '5+ pts',            color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800', val: 'text-orange-700 dark:text-orange-400' },
+          { label: 'Termination',    value: termRisk,     sub: '8+ pts',            color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',      val: 'text-red-700 dark:text-red-400' },
+          { label: 'Auto-Term',      value: ncnsAutoTerm, sub: '2 NCNS',            color: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',      val: 'text-red-700 dark:text-red-400' },
         ].map((k) => (
           <div key={k.label} className={`rounded-xl border p-5 ${k.color}`}>
             <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{k.label}</div>
@@ -211,6 +222,7 @@ export default function AttendancePage() {
             <span className="text-xs text-gray-600 dark:text-gray-400">Termination (2 consecutive)</span>
           </div>
         </div>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">Points are cut in half after 180 days on assignment — the dashboard scores standing on these halved (effective) points.</p>
       </div>
 
       {/* Filters */}
@@ -292,12 +304,14 @@ export default function AttendancePage() {
         )}
       </div>
 
-      <AttendanceModal
-        isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setEditing(null) }}
-        onSave={(data) => { if (editing) updateAttendanceRecord(editing.id, data); else addAttendanceRecord(data) }}
-        initial={editing}
-      />
+      {modalOpen && (
+        <AttendanceModal
+          isOpen={modalOpen}
+          onClose={() => { setModalOpen(false); setEditing(null) }}
+          onSave={(data) => { if (editing) updateAttendanceRecord(editing.id, data); else addAttendanceRecord(data) }}
+          initial={editing}
+        />
+      )}
 
       {confirmDeleteIds && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

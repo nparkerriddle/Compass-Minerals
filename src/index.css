@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Compass Minerals brand palette (from the logo) */
+@theme {
+  --color-brand-cyan: #00a3e0;
+  --color-brand-cyan-dark: #0089bd;
+  --color-brand-navy: #16365c;
+  --color-brand-navy-light: #1d4373;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -19,4 +27,14 @@ body {
 #root {
   min-height: 100vh;
   width: 100%;
+}
+
+/* Printing — the Weekly Summary report prints clean (no sidebar/chrome). */
+@media print {
+  .no-print { display: none !important; }
+  html, body, #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
 }

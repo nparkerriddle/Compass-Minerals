@@ -26,9 +26,6 @@ export default function WorkerModal({ isOpen, onClose, onSave, initial = null })
   const [form, setForm] = useState(initial ?? EMPTY)
   const [errors, setErrors] = useState({})
 
-  // Reset form when modal opens with new initial data
-  useState(() => { setForm(initial ?? EMPTY); setErrors({}) }, [initial, isOpen])
-
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
     if (errors[field]) setErrors((e) => ({ ...e, [field]: null }))

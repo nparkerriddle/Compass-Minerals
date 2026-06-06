@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 import { useAppStore } from '../../store/useAppStore'
+import { isAtRisk } from '../../lib/attendance'
 
 const DEPT_COLORS  = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316','#84cc16']
 const SHIFT_COLORS = ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6']
@@ -18,7 +19,7 @@ const TILE_THEMES = {
   orange: { wrap: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 hover:border-orange-400', val: 'text-orange-700 dark:text-orange-400' },
 }
 
-function KpiTile({ label, value, sub, color = 'blue', onClick, badge }) {
+function KpiTile({ label, value, sub, color = 'blue', onClick }) {
   const t = TILE_THEMES[color]
   return (
     <div
@@ -54,19 +55,18 @@ function ChartCard({ title, sub, children }) {
 
 export default function OverviewPage() {
   const navigate         = useAppStore((s) => s.navigate)
+  const darkMode         = useAppStore((s) => s.darkMode)
   const workers          = useAppStore((s) => s.workers)
   const openings         = useAppStore((s) => s.openings)
   const waitlist         = useAppStore((s) => s.waitlist)
   const furloughWorkers    = useAppStore((s) => s.furloughWorkers)
   const attendanceRecords  = useAppStore((s) => s.attendanceRecords)
-  const breakfastItems     = useAppStore((s) => s.breakfastItems)
 
   const active   = useMemo(() => workers.filter((w) => w.status === 'Active'), [workers])
   const termed   = useMemo(() => workers.filter((w) => w.status === 'Termed'), [workers])
   const dna      = useMemo(() => workers.filter((w) => w.status === 'DNA'), [workers])
   const onFurlough   = useMemo(() => furloughWorkers.filter((w) => w.status === 'On Furlough'), [furloughWorkers])
-  const atRisk       = useMemo(() => attendanceRecords.filter((r) => (r.attendancePoints || 0) >= 3), [attendanceRecords])
-  const breakfastDone = breakfastItems.filter((i) => i.done).length
+  const atRisk       = useMemo(() => attendanceRecords.filter(isAtRisk), [attendanceRecords])
 
   const deptCounts = useMemo(() => {
     const map = {}
@@ -86,6 +86,17 @@ export default function OverviewPage() {
     return Object.entries(map).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count).slice(0, 8)
   }, [termed])
 
+  // Theme-aware chart colors (Recharts can't read Tailwind dark: classes)
+  const axisColor = darkMode ? '#9ca3af' : '#6b7280'
+  const gridColor = darkMode ? '#374151' : '#e5e7eb'
+  const tooltipStyle = {
+    fontSize: 12,
+    borderRadius: 8,
+    border: `1px solid ${gridColor}`,
+    background: darkMode ? '#1f2937' : '#ffffff',
+    color: darkMode ? '#e5e7eb' : '#111827',
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -104,8 +115,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiTile label="Termed"          value={termed.length}      sub="this season"          color="red"    onClick={() => navigate('attrition')} />
         <KpiTile label="DNA"             value={dna.length}         sub="did not advance"      color="purple" onClick={() => navigate('attrition')} />
-        <KpiTile label="At Risk"         value={atRisk.length}      sub="3+ attendance pts"    color="amber"  onClick={() => navigate('attendance')} />
-        <KpiTile label="Spring Breakfast" value={`${breakfastDone}/${breakfastItems.length}`} sub="items checked off" color="orange" onClick={() => navigate('breakfast')} />
+        <KpiTile label="At Risk"         value={atRisk.length}      sub="7+ attendance pts"    color="amber"  onClick={() => navigate('attendance')} />
       </div>
 
       {/* Charts */}
@@ -116,10 +126,10 @@ export default function OverviewPage() {
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={deptCounts} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis type="category" dataKey="department" width={110} tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: axisColor }} />
+                <YAxis type="category" dataKey="department" width={110} tick={{ fontSize: 11, fill: axisColor }} />
+                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={tooltipStyle} />
                 <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                   {deptCounts.map((_, i) => <Cell key={i} fill={DEPT_COLORS[i % DEPT_COLORS.length]} />)}
                 </Bar>
@@ -134,10 +144,10 @@ export default function OverviewPage() {
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={shiftCounts} margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="shift" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                <XAxis dataKey="shift" tick={{ fontSize: 11, fill: axisColor }} />
+                <YAxis tick={{ fontSize: 11, fill: axisColor }} />
+                <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={tooltipStyle} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {shiftCounts.map((_, i) => <Cell key={i} fill={SHIFT_COLORS[i % SHIFT_COLORS.length]} />)}
                 </Bar>
@@ -151,10 +161,10 @@ export default function OverviewPage() {
         <ChartCard title="Top Termination Reasons" sub="From termed worker records">
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={termReasons} layout="vertical" margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-              <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <YAxis type="category" dataKey="reason" width={160} tick={{ fontSize: 11, fill: '#6b7280' }} />
-              <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: axisColor }} />
+              <YAxis type="category" dataKey="reason" width={160} tick={{ fontSize: 11, fill: axisColor }} />
+              <Tooltip formatter={(v) => [v, 'Workers']} contentStyle={tooltipStyle} />
               <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>

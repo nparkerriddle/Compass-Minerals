@@ -21,8 +21,6 @@ export default function OpeningModal({ isOpen, onClose, onSave, initial = null }
   const [form, setForm] = useState(initial ?? EMPTY)
   const [errors, setErrors] = useState({})
 
-  useState(() => { setForm(initial ?? EMPTY); setErrors({}) }, [initial, isOpen])
-
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
     if (errors[field]) setErrors((e) => ({ ...e, [field]: null }))
