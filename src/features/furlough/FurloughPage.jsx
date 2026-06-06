@@ -510,8 +510,10 @@ export default function FurloughPage() {
         </div>
       </div>
 
-      <FurloughModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }}
-        onSave={(data) => { if (editing) updateFurloughWorker(editing.id, data); else addFurloughWorker(data) }} initial={editing} />
+      {modalOpen && (
+        <FurloughModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }}
+          onSave={(data) => { if (editing) updateFurloughWorker(editing.id, data); else addFurloughWorker(data) }} initial={editing} />
+      )}
 
       {confirmDeleteIds && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

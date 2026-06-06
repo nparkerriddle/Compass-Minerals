@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import compassData from '../data/compass-data.json'
+import { sampleData } from '../lib/sampleData'
+
+// Load real extracted data if present. The file is gitignored (worker PII),
+// so on a fresh clone it won't exist — import.meta.glob resolves to an empty
+// object instead of failing the build, and we fall back to the empty sample.
+const dataModules = import.meta.glob('../data/compass-data.json', { eager: true })
+const compassData = dataModules['../data/compass-data.json']?.default ?? sampleData
 
 function makeId() { return crypto.randomUUID() }
 
@@ -51,6 +57,8 @@ function initAttendanceRecords() {
     shift: w.shift || '',
     supervisor: w.supervisor || '',
     attendancePoints: w.attendancePoints || 0,
+    ncns: w.ncns || 0,
+    daysOnAssignment: w.daysOnAssignment || 0,
     wage: w.wage || 0,
     notes: '',
   }))
@@ -84,6 +92,28 @@ function initBreakfastItems() {
   return items.map(i => ({ id: makeId(), ...i, done: false }))
 }
 
+// Actual vs AOP (Annual Operating Plan) headcount — from the Haul Shift Roster.
+function initStaffingPlan() {
+  const rows = [
+    { role: 'Haul Truck Drivers', actual: 40, target: 40 },
+    { role: 'Scraper Operators',   actual: 0,  target: 0 },
+    { role: 'Water Truck Drivers', actual: 0,  target: 2 },
+    { role: 'Supervisors',         actual: 3,  target: 4 },
+  ]
+  return rows.map(r => ({ id: makeId(), ...r }))
+}
+
+// Monthly P&L summary — from Compass Financials - Monthly.xlsx.
+function initFinancials() {
+  const rows = [
+    { month: 'Aug 2024',  income: 163033.20, grossProfit: 35281.30, netIncome: 30459.99 },
+    { month: 'Sep 2024',  income: 338271.40, grossProfit: 69374.61, netIncome: 61164.93 },
+    { month: 'Oct 2024',  income: 395684.38, grossProfit: 80986.02, netIncome: 74845.13 },
+    { month: 'Jan 2025',  income: 444096.33, grossProfit: 89596.71, netIncome: 82446.32 },
+  ]
+  return rows.map(r => ({ id: makeId(), ...r }))
+}
+
 function initBreakfastNotes() {
   const notes = [
     '225 people per day — plan for 2–3 pcs of each item per person',
@@ -110,9 +140,15 @@ function initBreakfastNotes() {
 export const useAppStore = create(
   persist(
     (set) => ({
-      // Navigation (not persisted)
-      currentPage: 'overview',
+      // Navigation (currentPage not persisted)
+      currentPage: 'home',
       navigate: (page) => set({ currentPage: page }),
+
+      // Bookmarked sections for quick access on the Home page (persisted)
+      bookmarks: ['overview', 'attendance', 'reports'],
+      toggleBookmark: (id) => set((s) => ({
+        bookmarks: s.bookmarks.includes(id) ? s.bookmarks.filter((b) => b !== id) : [...s.bookmarks, id],
+      })),
 
       // Data
       workers: initWorkers(),
@@ -122,6 +158,8 @@ export const useAppStore = create(
       attendanceRecords: initAttendanceRecords(),
       breakfastItems: initBreakfastItems(),
       breakfastNotes: initBreakfastNotes(),
+      staffingPlan: initStaffingPlan(),
+      financials: initFinancials(),
       darkMode: false,
 
       // Workers
@@ -165,6 +203,16 @@ export const useAppStore = create(
       updateBreakfastNote: (id, text) => set((s) => ({ breakfastNotes: s.breakfastNotes.map((n) => n.id === id ? { ...n, text } : n) })),
       deleteBreakfastNote: (id) => set((s) => ({ breakfastNotes: s.breakfastNotes.filter((n) => n.id !== id) })),
 
+      // Staffing plan (Actual vs AOP)
+      addStaffingRole: (r) => set((s) => ({ staffingPlan: [...s.staffingPlan, { ...r, id: makeId() }] })),
+      updateStaffingRole: (id, u) => set((s) => ({ staffingPlan: s.staffingPlan.map((r) => r.id === id ? { ...r, ...u } : r) })),
+      deleteStaffingRole: (id) => set((s) => ({ staffingPlan: s.staffingPlan.filter((r) => r.id !== id) })),
+
+      // Financials (monthly P&L)
+      addFinancialMonth: (m) => set((s) => ({ financials: [...s.financials, { ...m, id: makeId() }] })),
+      updateFinancialMonth: (id, u) => set((s) => ({ financials: s.financials.map((m) => m.id === id ? { ...m, ...u } : m) })),
+      deleteFinancialMonth: (id) => set((s) => ({ financials: s.financials.filter((m) => m.id !== id) })),
+
       // Settings
       toggleDarkMode: () => set((s) => {
         const next = !s.darkMode
@@ -183,6 +231,9 @@ export const useAppStore = create(
         attendanceRecords: state.attendanceRecords,
         breakfastItems: state.breakfastItems,
         breakfastNotes: state.breakfastNotes,
+        staffingPlan: state.staffingPlan,
+        financials: state.financials,
+        bookmarks: state.bookmarks,
         darkMode: state.darkMode,
       }),
       onRehydrateStorage: () => (state) => {

@@ -189,8 +189,10 @@ export default function WaitlistPage() {
         )}
       </div>
 
-      <WaitlistModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }}
-        onSave={(data) => { if (editing) updateWaitlistEntry(editing.id, data); else addWaitlistEntry(data) }} initial={editing} />
+      {modalOpen && (
+        <WaitlistModal isOpen={modalOpen} onClose={() => { setModalOpen(false); setEditing(null) }}
+          onSave={(data) => { if (editing) updateWaitlistEntry(editing.id, data); else addWaitlistEntry(data) }} initial={editing} />
+      )}
 
       {confirmDeleteIds && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
