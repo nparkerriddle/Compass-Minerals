@@ -34,18 +34,26 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS app_state ("
-        "k TEXT PRIMARY KEY, v TEXT NOT NULL, updated_at TEXT DEFAULT (datetime('now')))"
+        "k TEXT PRIMARY KEY, v TEXT NOT NULL, rev INTEGER NOT NULL DEFAULT 0, "
+        "updated_at TEXT DEFAULT (datetime('now')))"
     )
+    # Add rev to pre-existing tables (older deploys) — ignore if already present.
+    try:
+        conn.execute("ALTER TABLE app_state ADD COLUMN rev INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
     return conn
 
 
 # ── Data API ──────────────────────────────────────────────────────────────────
+# Optimistic concurrency: GET returns a `rev`; PUT must echo the rev it last saw.
+# A stale PUT gets 409 so simultaneous editors can't silently overwrite each other.
 @app.route("/api/state", methods=["GET"])
 def get_state():
     conn = get_db()
-    row = conn.execute("SELECT v FROM app_state WHERE k = ?", (STATE_KEY,)).fetchone()
+    row = conn.execute("SELECT v, rev FROM app_state WHERE k = ?", (STATE_KEY,)).fetchone()
     conn.close()
-    return jsonify({"value": row[0] if row else None})
+    return jsonify({"value": row[0] if row else None, "rev": row[1] if row else 0})
 
 
 @app.route("/api/state", methods=["PUT"])
@@ -55,14 +63,21 @@ def put_state():
     if not isinstance(value, str):
         return jsonify({"error": "expected a string 'value'"}), 400
     conn = get_db()
+    row = conn.execute("SELECT v, rev FROM app_state WHERE k = ?", (STATE_KEY,)).fetchone()
+    current = row[1] if row else 0
+    expected = body.get("rev")
+    if expected is not None and int(expected) != current:
+        conn.close()
+        return jsonify({"error": "conflict", "rev": current, "value": row[0] if row else None}), 409
+    new_rev = current + 1
     conn.execute(
-        "INSERT INTO app_state (k, v, updated_at) VALUES (?, ?, datetime('now')) "
-        "ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated_at = excluded.updated_at",
-        (STATE_KEY, value),
+        "INSERT INTO app_state (k, v, rev, updated_at) VALUES (?, ?, ?, datetime('now')) "
+        "ON CONFLICT(k) DO UPDATE SET v = excluded.v, rev = excluded.rev, updated_at = excluded.updated_at",
+        (STATE_KEY, value, new_rev),
     )
     conn.commit()
     conn.close()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "rev": new_rev})
 
 
 @app.route("/api/state", methods=["DELETE"])

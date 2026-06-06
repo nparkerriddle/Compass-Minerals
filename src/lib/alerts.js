@@ -7,9 +7,18 @@ function daysSince(dateStr) {
   if (isNaN(d.getTime())) return null
   return Math.floor((Date.now() - d.getTime()) / 86_400_000)
 }
+const daysUntil = (dateStr) => { const s = daysSince(dateStr); return s === null ? null : -s }
 
-export function computeAlerts({ attendanceRecords = [], openings = [], furloughWorkers = [], staffingPlan = [] }) {
+export function computeAlerts({ workers = [], attendanceRecords = [], openings = [], furloughWorkers = [], staffingPlan = [] }) {
   const alerts = []
+
+  // ── Physical exam expirations (active workers) ──
+  const expiring = workers.filter((w) => {
+    if (w.status !== 'Active' || !w.physicalExpiration) return false
+    const d = daysUntil(w.physicalExpiration)
+    return d !== null && d <= 30
+  }).length
+  if (expiring) alerts.push({ id: 'phys-exp', severity: 'medium', title: `${expiring} physical${expiring > 1 ? 's' : ''} expiring soon`, detail: 'Due within 30 days (or expired)', page: 'onboarding' })
 
   // ── Attendance escalations ──
   const term = attendanceRecords.filter((r) => attendanceStatus(r).tier === 4).length

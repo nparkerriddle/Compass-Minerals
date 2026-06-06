@@ -52,7 +52,7 @@ export default function HomePage() {
   const furloughWorkers = useAppStore((s) => s.furloughWorkers)
   const staffingPlan = useAppStore((s) => s.staffingPlan)
 
-  const alerts = computeAlerts({ attendanceRecords, openings, furloughWorkers, staffingPlan })
+  const alerts = computeAlerts({ workers, attendanceRecords, openings, furloughWorkers, staffingPlan })
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'

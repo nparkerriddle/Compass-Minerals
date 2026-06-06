@@ -10,7 +10,8 @@ const ENDPOINT = '/api/state'
 const DEBOUNCE_MS = 600
 
 // ── Save-status pub/sub ───────────────────────────────────────────────────────
-let status = { state: 'idle', at: null } // idle | saving | saved | error
+let status = { state: 'idle', at: null } // idle | saving | saved | error | conflict
+let rev = 0 // last revision seen from the server (optimistic concurrency)
 const listeners = new Set()
 export const saveStatus = {
   get: () => status,
@@ -34,9 +35,20 @@ async function flush() {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value }),
+      body: JSON.stringify({ value, rev }),
     })
-    setStatus(res.ok ? 'saved' : 'error')
+    if (res.status === 409) {
+      // Someone else saved since we loaded — don't clobber their changes.
+      setStatus('conflict')
+      return
+    }
+    if (res.ok) {
+      const data = await res.json().catch(() => null)
+      if (data && typeof data.rev === 'number') rev = data.rev
+      setStatus('saved')
+    } else {
+      setStatus('error')
+    }
   } catch {
     // No backend (e.g. plain `vite` dev) — intentionally no localStorage fallback.
     setStatus('idle')
@@ -49,6 +61,7 @@ export const serverStorage = {
       const res = await fetch(ENDPOINT, { credentials: 'include', headers: { Accept: 'application/json' } })
       if (!res.ok) return null
       const data = await res.json()
+      if (typeof data?.rev === 'number') rev = data.rev
       return data?.value ?? null
     } catch {
       return null
