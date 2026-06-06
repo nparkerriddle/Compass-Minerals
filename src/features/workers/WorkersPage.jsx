@@ -33,6 +33,9 @@ export default function WorkersPage() {
   const updateWorker = useAppStore((s) => s.updateWorker)
   const deleteWorker = useAppStore((s) => s.deleteWorker)
   const deleteWorkers = useAppStore((s) => s.deleteWorkers)
+  const terminateWorker = useAppStore((s) => s.terminateWorker)
+  const moveWorkerToFurlough = useAppStore((s) => s.moveWorkerToFurlough)
+  const moveWorkerToWaitlist = useAppStore((s) => s.moveWorkerToWaitlist)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -41,20 +44,20 @@ export default function WorkersPage() {
   const [search, setSearch] = useState('')
   const [deptFilter, setDeptFilter] = useState('')
   const [shiftFilter, setShiftFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
   const [rowSelection, setRowSelection] = useState({})
   const [sorting, setSorting] = useState([])
 
+  // Workers list = ACTIVE only. Termed/DNA live in Terminations; furloughed/waitlisted in their own sections.
   const filtered = useMemo(() => {
     return workers.filter((w) => {
+      if (w.status !== 'Active') return false
       const name = `${w.firstName} ${w.lastName}`.toLowerCase()
       if (search && !name.includes(search.toLowerCase()) && !w.department.toLowerCase().includes(search.toLowerCase())) return false
       if (deptFilter && w.department !== deptFilter) return false
       if (shiftFilter && w.shift !== shiftFilter) return false
-      if (statusFilter && w.status !== statusFilter) return false
       return true
     })
-  }, [workers, search, deptFilter, shiftFilter, statusFilter])
+  }, [workers, search, deptFilter, shiftFilter])
 
   const columns = useMemo(() => [
     {
@@ -112,6 +115,24 @@ export default function WorkersPage() {
       header: '',
       cell: ({ row }) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <select
+            title="Move worker"
+            value=""
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === 'furlough') moveWorkerToFurlough(row.original.id)
+              else if (v === 'waitlist') moveWorkerToWaitlist(row.original.id)
+              else if (v === 'termed') terminateWorker(row.original.id, { status: 'Termed' })
+              else if (v === 'dna') terminateWorker(row.original.id, { status: 'DNA' })
+            }}
+            className="text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-1 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-brand-cyan"
+          >
+            <option value="">Move…</option>
+            <option value="furlough">→ Furlough</option>
+            <option value="waitlist">→ Waitlist</option>
+            <option value="termed">→ Terminate</option>
+            <option value="dna">→ DNA</option>
+          </select>
           <button
             onClick={() => { setEditing(row.original); setModalOpen(true) }}
             className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
@@ -133,7 +154,7 @@ export default function WorkersPage() {
         </div>
       ),
     },
-  ], [])
+  ], [terminateWorker, moveWorkerToFurlough, moveWorkerToWaitlist])
 
   const table = useReactTable({
     data: filtered,
@@ -184,7 +205,7 @@ export default function WorkersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Workers</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{workers.length} total records</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Active roster — assigned to the client</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -231,15 +252,8 @@ export default function WorkersPage() {
           <option value="">All Shifts</option>
           {SHIFTS.map((s) => <option key={s} value={s}>Shift {s}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <option value="">All Statuses</option>
-          <option value="Active">Active</option>
-          <option value="Termed">Termed</option>
-          <option value="DNA">DNA</option>
-        </select>
-        {(search || deptFilter || shiftFilter || statusFilter) && (
-          <button onClick={() => { setSearch(''); setDeptFilter(''); setShiftFilter(''); setStatusFilter('') }}
+        {(search || deptFilter || shiftFilter) && (
+          <button onClick={() => { setSearch(''); setDeptFilter(''); setShiftFilter('') }}
             className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
             Clear
           </button>
