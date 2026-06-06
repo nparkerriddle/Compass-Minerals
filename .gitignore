@@ -14,6 +14,16 @@ dist-ssr
 .env
 .env.local
 
+# Python backend
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Server-side datastore (runtime, lives on the server's persistent disk)
+*.db
+compass.db
+
 # Extracted data (contains worker PII — wages, names)
 src/data/
 public/data/

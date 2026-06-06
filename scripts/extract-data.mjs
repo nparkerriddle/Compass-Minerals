@@ -4,7 +4,10 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const xlsxPath = resolve(__dirname, '../../Compass Tracker.xlsx');
+// Optional CLI arg overrides the default tracker location.
+const xlsxPath = process.argv[2]
+  ? resolve(process.cwd(), process.argv[2])
+  : resolve(__dirname, '../../Compass Tracker.xlsx');
 const outDir = resolve(__dirname, '../src/data');
 
 mkdirSync(outDir, { recursive: true });
@@ -54,6 +57,21 @@ const otherWorkers = otherRaw
   .filter(r => r.name && r.name !== ' ');
 
 const allActive = [...haulWorkers, ...otherWorkers];
+
+// ── Furloughed workers (off-season) from Haul + Fueler sheets ─────────────────
+function furloughFrom(raw) {
+  return raw
+    .filter(r => String(r['Status']).trim() === 'Furlough')
+    .map(r => ({
+      name: `${String(r['First']).trim()} ${String(r['Last']).trim()}`.trim(),
+      department: String(r['Department']).trim(),
+      shift: String(r['Shift']).trim(),
+      supervisor: String(r['Supervisor']).trim(),
+      seasonsWorked: Number(r['Season']) || 0,
+    }))
+    .filter(r => r.name && r.name !== ' ');
+}
+const furloughWorkers = [...furloughFrom(haulRaw), ...furloughFrom(otherRaw)];
 
 // ── Department counts ─────────────────────────────────────────────────────────
 const deptMap = {};
@@ -112,8 +130,8 @@ const openings = openData.map(r => ({
 
 const openPositions = openings.filter(r => !r.dateFilled);
 
-// ── Waitlist-Furlough ─────────────────────────────────────────────────────────
-const wfRaw = sheetToRows('Waitlist-Furlough');
+// ── Waitlist ──────────────────────────────────────────────────────────────────
+const wfRaw = sheetToRows('Waitlist');
 const waitlistWorkers = wfRaw
   .filter(r => {
     const name = `${String(r['First'] || '').trim()} ${String(r['Last'] || '').trim()}`.trim();
@@ -240,6 +258,7 @@ const data = {
     activeWorkers: allActive.length,
     openPositions: openPositions.length,
     waitlistCount: totalWaitlist,
+    furloughCount: furloughWorkers.length,
     termedCount,
     dnaCount,
     totalRegHours: Math.round(totalReg),
@@ -250,6 +269,7 @@ const data = {
   shiftCounts,
   openings: openPositions,
   waitlist: waitlistWorkers,
+  furloughWorkers,
   termReasons,
   deptAttrition,
   termedWorkers,
@@ -261,6 +281,7 @@ console.log('Extracted data:');
 console.log(`  Active workers: ${data.summary.activeWorkers}`);
 console.log(`  Open positions: ${data.summary.openPositions}`);
 console.log(`  Waitlist:       ${data.summary.waitlistCount}`);
+console.log(`  Furlough:       ${data.summary.furloughCount}`);
 console.log(`  Termed:         ${data.summary.termedCount}  DNA: ${data.summary.dnaCount}`);
 console.log(`  Dept counts:`, departmentCounts);
 console.log(`  Shift counts:`, shiftCounts);

@@ -83,9 +83,23 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider pt-4 pb-2">Access</h2>
         <SettingRow
           label="Password Protection"
-          description="Require a password to open the dashboard."
+          description="A shared password is required to open the dashboard."
         >
-          <span className="text-xs text-gray-400 dark:text-gray-500">Coming soon</span>
+          <span className="text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-medium px-2 py-0.5 rounded-full">Enabled</span>
+        </SettingRow>
+        <SettingRow
+          label="Sign Out"
+          description="End your session on this device."
+        >
+          <button
+            onClick={async () => {
+              try { await fetch('/api/logout', { method: 'POST', credentials: 'include' }) } catch { /* ignore */ }
+              window.location.reload()
+            }}
+            className="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Sign out
+          </button>
         </SettingRow>
         <SettingRow
           label="User Roles"
