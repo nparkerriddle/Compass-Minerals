@@ -252,6 +252,28 @@ extractRosterSection(rosterAoa[1] || [], rosterAoa[3] || [], rosterAoa.slice(4, 
 // Section 2: Haul Operators / SOP-Mag / HEO-Harvest / Misc  (rows 20–26)
 extractRosterSection(rosterAoa[17] || [], rosterAoa[19] || [], rosterAoa.slice(20, 27))
 
+// ── Injuries / Incidents ──────────────────────────────────────────────────────
+// Row 0 blank, headers on row 1, data from row 2.
+const incAoa = sheetToAoa('Injuries.Incidents');
+const incidents = [];
+for (let i = 2; i < incAoa.length; i++) {
+  const r = incAoa[i];
+  const first = String(r[3] || '').trim();
+  const last = String(r[4] || '').trim();
+  if (!first && !last) continue;
+  incidents.push({
+    date: r[0] ? (typeof r[0] === 'number' ? XLSX.SSF.format('m/d/yyyy', r[0]) : String(r[0]).trim()) : '',
+    time: String(r[1] || '').trim(),
+    name: `${first} ${last}`.trim(),
+    daysWorked: Number(r[5]) || 0,
+    shift: String(r[6] || '').trim(),
+    supervisor: String(r[7] || '').trim(),
+    department: String(r[8] || '').trim(),
+    outcome: String(r[9] || '').trim(),
+    notes: String(r[10] || '').trim(),
+  });
+}
+
 // ── Output ────────────────────────────────────────────────────────────────────
 const data = {
   summary: {
@@ -274,6 +296,7 @@ const data = {
   deptAttrition,
   termedWorkers,
   rosterWorkers,
+  incidents,
 };
 
 writeFileSync(resolve(outDir, 'compass-data.json'), JSON.stringify(data, null, 2));
