@@ -15,6 +15,7 @@ import ReportsPage from './features/reports/ReportsPage'
 import QBRPage from './features/qbr/QBRPage'
 import FinancialsPage from './features/financials/FinancialsPage'
 import PayrollPage from './features/payroll/PayrollPage'
+import ActivityPage from './features/activity/ActivityPage'
 import SettingsPage from './features/settings/SettingsPage'
 
 const PAGES = {
@@ -33,6 +34,7 @@ const PAGES = {
   qbr: QBRPage,
   financials: FinancialsPage,
   payroll: PayrollPage,
+  activity: ActivityPage,
   settings: SettingsPage,
 }
 

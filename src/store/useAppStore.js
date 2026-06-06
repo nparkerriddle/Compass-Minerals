@@ -148,6 +148,12 @@ function initBreakfastNotes() {
   return notes.map((text, i) => ({ id: makeId(), text, order: i }))
 }
 
+// ── Activity log helpers ──────────────────────────────────────────────────────
+const MAX_LOG = 250
+const logEntry = (action, entity, label) => ({ id: makeId(), action, entity, label, at: new Date().toISOString() })
+const withLog = (s, action, entity, label) => [logEntry(action, entity, label), ...s.activityLog].slice(0, MAX_LOG)
+const nameOf = (r) => r ? `${r.firstName || ''} ${r.lastName || ''}`.trim() || '(unnamed)' : '(unknown)'
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useAppStore = create(
@@ -173,36 +179,57 @@ export const useAppStore = create(
       breakfastNotes: initBreakfastNotes(),
       staffingPlan: initStaffingPlan(),
       financials: initFinancials(),
+      activityLog: [],
       darkMode: false,
 
+      // Activity log
+      clearActivityLog: () => set({ activityLog: [] }),
+
       // Workers
-      addWorker: (w) => set((s) => ({ workers: [...s.workers, { ...w, id: makeId() }] })),
-      updateWorker: (id, u) => set((s) => ({ workers: s.workers.map((w) => w.id === id ? { ...w, ...u } : w) })),
-      deleteWorker: (id) => set((s) => ({ workers: s.workers.filter((w) => w.id !== id) })),
-      deleteWorkers: (ids) => set((s) => ({ workers: s.workers.filter((w) => !ids.includes(w.id)) })),
+      addWorker: (w) => set((s) => { const n = { ...w, id: makeId() }; return { workers: [...s.workers, n], activityLog: withLog(s, 'Added', 'Worker', nameOf(n)) } }),
+      updateWorker: (id, u) => set((s) => ({ workers: s.workers.map((w) => w.id === id ? { ...w, ...u } : w), activityLog: withLog(s, 'Edited', 'Worker', nameOf(s.workers.find((w) => w.id === id))) })),
+      deleteWorker: (id) => set((s) => ({ workers: s.workers.filter((w) => w.id !== id), activityLog: withLog(s, 'Deleted', 'Worker', nameOf(s.workers.find((w) => w.id === id))) })),
+      deleteWorkers: (ids) => set((s) => ({ workers: s.workers.filter((w) => !ids.includes(w.id)), activityLog: withLog(s, 'Deleted', 'Workers', `${ids.length} records`) })),
 
       // Openings
-      addOpening: (o) => set((s) => ({ openings: [...s.openings, { ...o, id: makeId() }] })),
-      updateOpening: (id, u) => set((s) => ({ openings: s.openings.map((o) => o.id === id ? { ...o, ...u } : o) })),
-      deleteOpening: (id) => set((s) => ({ openings: s.openings.filter((o) => o.id !== id) })),
+      addOpening: (o) => set((s) => { const n = { ...o, id: makeId() }; return { openings: [...s.openings, n], activityLog: withLog(s, 'Added', 'Opening', `${n.department} ${n.position || ''}`.trim()) } }),
+      updateOpening: (id, u) => set((s) => ({ openings: s.openings.map((o) => o.id === id ? { ...o, ...u } : o), activityLog: withLog(s, 'Edited', 'Opening', (s.openings.find((o) => o.id === id) || {}).department || '') })),
+      deleteOpening: (id) => set((s) => ({ openings: s.openings.filter((o) => o.id !== id), activityLog: withLog(s, 'Deleted', 'Opening', (s.openings.find((o) => o.id === id) || {}).department || '') })),
 
       // Waitlist
-      addWaitlistEntry: (e) => set((s) => ({ waitlist: [...s.waitlist, { ...e, id: makeId() }] })),
-      updateWaitlistEntry: (id, u) => set((s) => ({ waitlist: s.waitlist.map((e) => e.id === id ? { ...e, ...u } : e) })),
-      deleteWaitlistEntry: (id) => set((s) => ({ waitlist: s.waitlist.filter((e) => e.id !== id) })),
-      deleteWaitlistEntries: (ids) => set((s) => ({ waitlist: s.waitlist.filter((e) => !ids.includes(e.id)) })),
+      addWaitlistEntry: (e) => set((s) => { const n = { ...e, id: makeId() }; return { waitlist: [...s.waitlist, n], activityLog: withLog(s, 'Added', 'Waitlist', nameOf(n)) } }),
+      updateWaitlistEntry: (id, u) => set((s) => ({ waitlist: s.waitlist.map((e) => e.id === id ? { ...e, ...u } : e), activityLog: withLog(s, 'Edited', 'Waitlist', nameOf(s.waitlist.find((e) => e.id === id))) })),
+      deleteWaitlistEntry: (id) => set((s) => ({ waitlist: s.waitlist.filter((e) => e.id !== id), activityLog: withLog(s, 'Deleted', 'Waitlist', nameOf(s.waitlist.find((e) => e.id === id))) })),
+      deleteWaitlistEntries: (ids) => set((s) => ({ waitlist: s.waitlist.filter((e) => !ids.includes(e.id)), activityLog: withLog(s, 'Deleted', 'Waitlist', `${ids.length} records`) })),
 
       // Furlough
-      addFurloughWorker: (w) => set((s) => ({ furloughWorkers: [...s.furloughWorkers, { ...w, id: makeId() }] })),
-      updateFurloughWorker: (id, u) => set((s) => ({ furloughWorkers: s.furloughWorkers.map((w) => w.id === id ? { ...w, ...u } : w) })),
-      deleteFurloughWorker: (id) => set((s) => ({ furloughWorkers: s.furloughWorkers.filter((w) => w.id !== id) })),
-      deleteFurloughWorkers: (ids) => set((s) => ({ furloughWorkers: s.furloughWorkers.filter((w) => !ids.includes(w.id)) })),
+      addFurloughWorker: (w) => set((s) => { const n = { ...w, id: makeId() }; return { furloughWorkers: [...s.furloughWorkers, n], activityLog: withLog(s, 'Added', 'Furlough', nameOf(n)) } }),
+      updateFurloughWorker: (id, u) => set((s) => ({ furloughWorkers: s.furloughWorkers.map((w) => w.id === id ? { ...w, ...u } : w), activityLog: withLog(s, 'Edited', 'Furlough', nameOf(s.furloughWorkers.find((w) => w.id === id))) })),
+      deleteFurloughWorker: (id) => set((s) => ({ furloughWorkers: s.furloughWorkers.filter((w) => w.id !== id), activityLog: withLog(s, 'Deleted', 'Furlough', nameOf(s.furloughWorkers.find((w) => w.id === id))) })),
+      deleteFurloughWorkers: (ids) => set((s) => ({ furloughWorkers: s.furloughWorkers.filter((w) => !ids.includes(w.id)), activityLog: withLog(s, 'Deleted', 'Furlough', `${ids.length} records`) })),
+      // Reactivate a furloughed worker into the active roster
+      reactivateFurloughWorker: (id) => set((s) => {
+        const f = s.furloughWorkers.find((w) => w.id === id)
+        if (!f) return {}
+        const today = new Date().toISOString().slice(0, 10)
+        const worker = {
+          id: makeId(), firstName: f.firstName, lastName: f.lastName,
+          department: f.department || '', shift: f.shift || '', supervisor: f.supervisor || '',
+          startDate: today, daysWorked: 0, wage: f.wage || 0,
+          status: 'Active', termReason: '', notes: 'Returned from furlough',
+        }
+        return {
+          workers: [...s.workers, worker],
+          furloughWorkers: s.furloughWorkers.map((w) => w.id === id ? { ...w, status: 'Returned', actualReturn: today } : w),
+          activityLog: withLog(s, 'Returned', 'Furlough', `${nameOf(f)} → active`),
+        }
+      }),
 
       // Attendance
-      addAttendanceRecord: (r) => set((s) => ({ attendanceRecords: [...s.attendanceRecords, { ...r, id: makeId() }] })),
-      updateAttendanceRecord: (id, u) => set((s) => ({ attendanceRecords: s.attendanceRecords.map((r) => r.id === id ? { ...r, ...u } : r) })),
-      deleteAttendanceRecord: (id) => set((s) => ({ attendanceRecords: s.attendanceRecords.filter((r) => r.id !== id) })),
-      deleteAttendanceRecords: (ids) => set((s) => ({ attendanceRecords: s.attendanceRecords.filter((r) => !ids.includes(r.id)) })),
+      addAttendanceRecord: (r) => set((s) => { const n = { ...r, id: makeId() }; return { attendanceRecords: [...s.attendanceRecords, n], activityLog: withLog(s, 'Added', 'Attendance', nameOf(n)) } }),
+      updateAttendanceRecord: (id, u) => set((s) => ({ attendanceRecords: s.attendanceRecords.map((r) => r.id === id ? { ...r, ...u } : r), activityLog: withLog(s, 'Edited', 'Attendance', nameOf(s.attendanceRecords.find((r) => r.id === id))) })),
+      deleteAttendanceRecord: (id) => set((s) => ({ attendanceRecords: s.attendanceRecords.filter((r) => r.id !== id), activityLog: withLog(s, 'Deleted', 'Attendance', nameOf(s.attendanceRecords.find((r) => r.id === id))) })),
+      deleteAttendanceRecords: (ids) => set((s) => ({ attendanceRecords: s.attendanceRecords.filter((r) => !ids.includes(r.id)), activityLog: withLog(s, 'Deleted', 'Attendance', `${ids.length} records`) })),
 
       // Breakfast items
       addBreakfastItem: (item) => set((s) => ({ breakfastItems: [...s.breakfastItems, { ...item, id: makeId(), done: false }] })),
@@ -248,6 +275,7 @@ export const useAppStore = create(
         breakfastNotes: state.breakfastNotes,
         staffingPlan: state.staffingPlan,
         financials: state.financials,
+        activityLog: state.activityLog,
         bookmarks: state.bookmarks,
         darkMode: state.darkMode,
       }),

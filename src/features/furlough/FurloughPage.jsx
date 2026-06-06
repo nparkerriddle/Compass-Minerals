@@ -125,6 +125,7 @@ export default function FurloughPage() {
   const updateFurloughWorker = useAppStore((s) => s.updateFurloughWorker)
   const deleteFurloughWorker = useAppStore((s) => s.deleteFurloughWorker)
   const deleteFurloughWorkers = useAppStore((s) => s.deleteFurloughWorkers)
+  const reactivateFurloughWorker = useAppStore((s) => s.reactivateFurloughWorker)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -222,6 +223,14 @@ export default function FurloughPage() {
       id: 'actions', size: 80, header: '',
       cell: ({ row }) => (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          {row.original.status === 'On Furlough' && (
+            <button onClick={() => reactivateFurloughWorker(row.original.id)} title="Return to active roster"
+              className="p-1.5 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              </svg>
+            </button>
+          )}
           <button onClick={() => { setEditing(row.original); setModalOpen(true) }}
             className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -237,7 +246,7 @@ export default function FurloughPage() {
         </div>
       ),
     },
-  ], [])
+  ], [reactivateFurloughWorker])
 
   const table = useReactTable({
     data: filtered, columns,
