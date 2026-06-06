@@ -98,14 +98,13 @@ src/
     overview/              — KPI tiles + charts
     departments/           — site photos + live headcount/openings per department
     workers/               — ACTIVE roster only (CRUD) + Move actions (→ furlough/waitlist/term/DNA)
-    terminations/          — Termed & DNA (CRUD) + Rehire (→ active)
     onboarding/            — new-hire sign-off checklist for active workers
     staffing/              — headcount Actual vs AOP plan (CRUD)
     openings/              — open requisitions (CRUD)
     waitlist/              — waitlist candidates (CRUD) + Place (→ active)
     furlough/              — furlough tracking (CRUD) + Return (→ active)
     attendance/            — attendance points + policy standing (CRUD)
-    attrition/             — termination analytics (charts)
+    attrition/             — "Terminations & Attrition": termed/DNA records (CRUD + rehire) + analytics charts
     supervisors/           — per-supervisor rollups (headcount/attendance/incidents)
     safety/                — injuries & incidents (CRUD)
     breakfast/             — Spring Breakfast supplies + notes (CRUD)
