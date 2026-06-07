@@ -24,6 +24,10 @@ venv/
 *.db
 compass.db
 
+# Single-file preview build (contains seed data; generated for sharing, not committed)
+preview/
+*-Preview.html
+
 # Extracted data (contains worker PII — wages, names)
 src/data/
 public/data/

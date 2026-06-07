@@ -1,6 +1,7 @@
 // Real Compass Minerals (Ogden site) photos, compressed for web.
-// Files live in public/images/departments/ — reference by absolute path.
-const img = (name) => `/images/departments/${name}.jpg`
+// Imported as bundled assets (so they inline in the single-file preview build).
+const photoUrls = import.meta.glob('../assets/departments/*.jpg', { eager: true, query: '?url', import: 'default' })
+const img = (name) => photoUrls[`../assets/departments/${name}.jpg`] || ''
 
 // A representative photo for each staffed department. Some are approximate —
 // the site only provided haul, loader, and salt-plant imagery.

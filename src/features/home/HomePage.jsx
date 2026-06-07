@@ -1,6 +1,8 @@
 import { useAppStore } from '../../store/useAppStore'
 import { NAV_GROUPS, ICONS, sectionById } from '../../lib/nav.jsx'
 import { computeAlerts } from '../../lib/alerts'
+import compassLogo from '../../assets/brand/compass-logo.png'
+import heroImg from '../../assets/departments/salt-plant-line-1.jpg'
 
 const ALERT_STYLES = {
   high: { dot: 'bg-red-500', chip: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20' },
@@ -66,11 +68,11 @@ export default function HomePage() {
     <div className="min-h-full">
       {/* Hero */}
       <div className="relative overflow-hidden">
-        <img src="/images/departments/salt-plant-line-1.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={heroImg} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-brand-navy via-brand-navy/95 to-brand-navy/70" />
         <div className="relative px-8 py-10 sm:py-14">
           <div className="bg-white rounded-lg px-4 py-3 inline-flex shadow-lg">
-            <img src="/images/brand/compass-logo.png" alt="Compass Minerals" className="h-9 w-auto" />
+            <img src={compassLogo} alt="Compass Minerals" className="h-9 w-auto" />
           </div>
           <h1 className="mt-5 text-3xl font-bold text-white">{greeting}</h1>
           <p className="text-slate-300 mt-1">{today}</p>

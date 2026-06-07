@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { useAppStore } from '../../store/useAppStore'
 import { attendanceStatus } from '../../lib/attendance'
+import compassLogo from '../../assets/brand/compass-logo.png'
 
 // Brand palette (hex without # for pptxgenjs).
 const PALETTE = ['00A3E0', '16365C', '22C55E', 'F59E0B', 'EF4444', '8B5CF6', '06B6D4', 'F97316']
@@ -132,7 +133,7 @@ export default function QBRPage() {
       // ── Title slide ──
       const title1 = pptx.addSlide()
       title1.background = { color: NAVY }
-      const logo = await fetchAsDataUrl('/images/brand/compass-logo.png')
+      const logo = await fetchAsDataUrl(compassLogo)
       if (logo) title1.addImage({ data: logo, x: 0.6, y: 0.6, w: 2.8, h: 0.75 })
       title1.addText(title, { x: 0.6, y: 2.6, w: 12, h: 1.2, fontSize: 34, bold: true, color: 'FFFFFF' })
       title1.addText(period, { x: 0.6, y: 3.8, w: 12, h: 0.6, fontSize: 20, color: CYAN })

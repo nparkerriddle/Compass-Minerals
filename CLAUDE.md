@@ -39,6 +39,8 @@ Front-end dev with hot reload (optional): run `python app.py` (backend) and
 ```bash
 npm run extract-data   # OPTIONAL — parse Compass Tracker.xlsx → src/data/compass-data.json (seed)
 npm run lint
+npm run build:preview  # → preview/index.html : a single self-contained .html (no server)
+                       #   for emailing a clickable preview (seed data; edits don't persist)
 ```
 
 ---
@@ -124,9 +126,8 @@ src/
     serverStorage.js       — Zustand storage adapter → /api/state (debounced + save status)
     sampleData.js          — empty seed used when no extracted data is present
   store/useAppStore.js     — Zustand store (data + CRUD + status transitions + activity log)
-public/
-  images/brand/            — Compass logo (compass-logo.png, used in sidebar + hero)
-  images/departments/      — real Ogden site photos (haul, loader, salt plant), web-compressed
+  assets/brand/            — Compass logo (bundled import; sidebar/hero/QBR export)
+  assets/departments/      — real Ogden site photos (bundled imports, inline-able)
 static/                    — BUILT front-end (committed; Flask serves it). Regenerate with `npm run build`.
 scripts/
   extract-data.mjs         — parses Compass Tracker.xlsx → src/data/compass-data.json
