@@ -2,6 +2,8 @@ import { useAppStore } from '../../store/useAppStore'
 import { isAtRisk } from '../../lib/attendance'
 import { ICONS, NAV_GROUPS } from '../../lib/nav.jsx'
 import SaveStatus from './SaveStatus'
+import GlobalSearch from './GlobalSearch'
+import compassLogo from '../../assets/brand/compass-logo.png'
 
 function NavButton({ id, label, isActive, badge, onClick }) {
   return (
@@ -52,10 +54,15 @@ export default function Sidebar({ currentPage, onNavigate }) {
       {/* Brand — logo chip, clickable to Home */}
       <button onClick={() => onNavigate('home')} className="px-4 py-4 border-b border-white/10 text-left hover:bg-white/5 transition-colors">
         <div className="bg-white rounded-lg px-3 py-2.5 flex items-center justify-center">
-          <img src="/images/brand/compass-logo.png" alt="Compass Minerals" className="h-7 w-auto" />
+          <img src={compassLogo} alt="Compass Minerals" className="h-7 w-auto" />
         </div>
         <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-2 text-center">YES Staffing Portal</div>
       </button>
+
+      {/* Search */}
+      <div className="px-3 pt-3">
+        <GlobalSearch />
+      </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
