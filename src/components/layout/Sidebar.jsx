@@ -31,17 +31,14 @@ export default function Sidebar({ currentPage, onNavigate }) {
   const furloughWorkers = useAppStore((s) => s.furloughWorkers)
   const breakfastItems = useAppStore((s) => s.breakfastItems)
   const attendanceRecords = useAppStore((s) => s.attendanceRecords)
-  const staffingPlan   = useAppStore((s) => s.staffingPlan)
 
   const activeCount    = workers.filter((w) => w.status === 'Active').length
   const furloughCount  = furloughWorkers.filter((w) => w.status === 'On Furlough').length
   const doneCount      = breakfastItems.filter((i) => i.done).length
   const atRiskCount    = attendanceRecords.filter(isAtRisk).length
-  const openToPlan     = staffingPlan.reduce((s, r) => s + Math.max(0, (r.target || 0) - (r.actual || 0)), 0)
 
   const badges = {
     workers:    activeCount,
-    staffing:   openToPlan || undefined,
     openings:   openings.length,
     waitlist:   waitlist.length,
     furlough:   furloughCount || undefined,

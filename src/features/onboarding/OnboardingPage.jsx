@@ -22,22 +22,42 @@ export default function OnboardingPage() {
   const workers = useAppStore((s) => s.workers)
   const updateWorker = useAppStore((s) => s.updateWorker)
   const [deptFilter, setDeptFilter] = useState('')
+  const [view, setView] = useState('inProgress') // 'inProgress' | 'onboarded'
 
-  const active = useMemo(() => workers.filter((w) => w.status === 'Active' && (!deptFilter || w.department === deptFilter)), [workers, deptFilter])
   const pct = (w) => Math.round((STEPS.filter((s) => w[s.key]).length / STEPS.length) * 100)
-  const fullyOnboarded = active.filter((w) => pct(w) === 100).length
+
+  const active = useMemo(
+    () => workers.filter((w) => w.status === 'Active' && (!deptFilter || w.department === deptFilter)),
+    [workers, deptFilter],
+  )
+  const inProgress = useMemo(() => active.filter((w) => !w.onboarded), [active])
+  const onboarded = useMemo(() => active.filter((w) => w.onboarded), [active])
+  const rows = view === 'onboarded' ? onboarded : inProgress
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Onboarding</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Sign-off progress for active workers · {fullyOnboarded}/{active.length} fully onboarded</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Sign-off progress for active workers · {inProgress.length} in progress · {onboarded.length} onboarded</p>
       </div>
 
-      <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}
-        className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-cyan">
-        <option value="">All Departments</option>{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-      </select>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
+          <button onClick={() => setView('inProgress')}
+            className={`px-3 py-1.5 font-medium transition-colors ${view === 'inProgress' ? 'bg-brand-cyan text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+            In progress ({inProgress.length})
+          </button>
+          <button onClick={() => setView('onboarded')}
+            className={`px-3 py-1.5 font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${view === 'onboarded' ? 'bg-brand-cyan text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+            Onboarded ({onboarded.length})
+          </button>
+        </div>
+
+        <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}
+          className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand-cyan">
+          <option value="">All Departments</option>{DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -49,12 +69,15 @@ export default function OnboardingPage() {
                 {STEPS.map((s) => <th key={s.key} className="px-3 py-3 font-semibold text-center">{s.label}</th>)}
                 <th className="px-4 py-3 font-semibold">Progress</th>
                 <th className="px-4 py-3 font-semibold">Physical Exp.</th>
+                <th className="px-4 py-3 font-semibold text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
-              {active.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No active workers.</td></tr>
-              ) : active.map((w) => {
+              {rows.length === 0 ? (
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">
+                  {view === 'onboarded' ? 'No onboarded workers yet.' : 'No workers in progress.'}
+                </td></tr>
+              ) : rows.map((w) => {
                 const p = pct(w)
                 return (
                   <tr key={w.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -72,6 +95,19 @@ export default function OnboardingPage() {
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">{w.physicalExpiration || '—'}</td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      {w.onboarded ? (
+                        <button onClick={() => updateWorker(w.id, { onboarded: false })}
+                          className="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-brand-cyan border border-gray-300 dark:border-gray-600 rounded-md px-2.5 py-1 transition-colors">
+                          Reopen
+                        </button>
+                      ) : (
+                        <button onClick={() => updateWorker(w.id, { onboarded: true })}
+                          className="text-xs font-semibold text-white bg-green-600 hover:bg-green-700 rounded-md px-2.5 py-1 transition-colors">
+                          Mark onboarded
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })}

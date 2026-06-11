@@ -38,7 +38,7 @@ export default function SettingsPage() {
     const s = useAppStore.getState()
     const dump = {
       workers: s.workers, openings: s.openings, waitlist: s.waitlist, furloughWorkers: s.furloughWorkers,
-      attendanceRecords: s.attendanceRecords, incidents: s.incidents, staffingPlan: s.staffingPlan,
+      attendanceRecords: s.attendanceRecords, incidents: s.incidents,
       financials: s.financials, breakfastItems: s.breakfastItems, breakfastNotes: s.breakfastNotes,
       snapshots: s.snapshots, exportedAt: new Date().toISOString(),
     }

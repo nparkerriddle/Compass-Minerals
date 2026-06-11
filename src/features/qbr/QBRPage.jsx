@@ -37,7 +37,6 @@ export default function QBRPage() {
   const waitlist = useAppStore((s) => s.waitlist)
   const furloughWorkers = useAppStore((s) => s.furloughWorkers)
   const attendanceRecords = useAppStore((s) => s.attendanceRecords)
-  const staffingPlan = useAppStore((s) => s.staffingPlan)
   const financials = useAppStore((s) => s.financials)
   const darkMode = useAppStore((s) => s.darkMode)
 
@@ -95,14 +94,6 @@ export default function QBRPage() {
       },
       { id: 'dept', title: 'Active Headcount by Department', kind: 'bar', series: [{ name: 'Workers', data: dept }] },
       { id: 'shift', title: 'Active Workers by Shift', kind: 'bar', series: [{ name: 'Workers', data: shift }] },
-      {
-        id: 'staffing', title: 'Headcount: Actual vs. AOP Plan', kind: 'grouped',
-        labels: staffingPlan.map((r) => r.role),
-        series: [
-          { name: 'Actual', values: staffingPlan.map((r) => r.actual || 0) },
-          { name: 'AOP Target', values: staffingPlan.map((r) => r.target || 0) },
-        ],
-      },
       { id: 'standing', title: 'Attendance Standing', kind: 'pie', series: [{ name: 'Workers', data: standing }] },
       { id: 'reasons', title: 'Top Termination Reasons', kind: 'bar', series: [{ name: 'Workers', data: termReasons }] },
       { id: 'separations', title: 'Separations by Department', kind: 'bar', series: [{ name: 'Separations', data: separations }] },
@@ -116,7 +107,7 @@ export default function QBRPage() {
         ],
       },
     ]
-  }, [workers, openings, waitlist, furloughWorkers, attendanceRecords, staffingPlan, financials])
+  }, [workers, openings, waitlist, furloughWorkers, attendanceRecords, financials])
 
   const isIn = (id) => included[id] !== false // default included
   const toggle = (id) => setIncluded((p) => ({ ...p, [id]: p[id] === false ? true : false }))

@@ -118,17 +118,6 @@ function initBreakfastItems() {
   return items.map(i => ({ id: makeId(), ...i, done: false }))
 }
 
-// Actual vs AOP (Annual Operating Plan) headcount — from the Haul Shift Roster.
-function initStaffingPlan() {
-  const rows = [
-    { role: 'Haul Truck Drivers', actual: 40, target: 40 },
-    { role: 'Scraper Operators',   actual: 0,  target: 0 },
-    { role: 'Water Truck Drivers', actual: 0,  target: 2 },
-    { role: 'Supervisors',         actual: 3,  target: 4 },
-  ]
-  return rows.map(r => ({ id: makeId(), ...r }))
-}
-
 // Monthly P&L summary — from Compass Financials - Monthly.xlsx.
 function initFinancials() {
   const rows = [
@@ -190,7 +179,6 @@ export const useAppStore = create(
       attendanceRecords: initAttendanceRecords(),
       breakfastItems: initBreakfastItems(),
       breakfastNotes: initBreakfastNotes(),
-      staffingPlan: initStaffingPlan(),
       financials: initFinancials(),
       incidents: initIncidents(),
       activityLog: [],
@@ -333,11 +321,6 @@ export const useAppStore = create(
       updateBreakfastNote: (id, text) => set((s) => ({ breakfastNotes: s.breakfastNotes.map((n) => n.id === id ? { ...n, text } : n) })),
       deleteBreakfastNote: (id) => set((s) => ({ breakfastNotes: s.breakfastNotes.filter((n) => n.id !== id) })),
 
-      // Staffing plan (Actual vs AOP)
-      addStaffingRole: (r) => set((s) => ({ staffingPlan: [...s.staffingPlan, { ...r, id: makeId() }] })),
-      updateStaffingRole: (id, u) => set((s) => ({ staffingPlan: s.staffingPlan.map((r) => r.id === id ? { ...r, ...u } : r) })),
-      deleteStaffingRole: (id) => set((s) => ({ staffingPlan: s.staffingPlan.filter((r) => r.id !== id) })),
-
       // Financials (monthly P&L)
       addFinancialMonth: (m) => set((s) => ({ financials: [...s.financials, { ...m, id: makeId() }] })),
       updateFinancialMonth: (id, u) => set((s) => ({ financials: s.financials.map((m) => m.id === id ? { ...m, ...u } : m) })),
@@ -368,7 +351,6 @@ export const useAppStore = create(
         attendanceRecords: state.attendanceRecords,
         breakfastItems: state.breakfastItems,
         breakfastNotes: state.breakfastNotes,
-        staffingPlan: state.staffingPlan,
         financials: state.financials,
         incidents: state.incidents,
         activityLog: state.activityLog,

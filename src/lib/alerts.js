@@ -9,7 +9,7 @@ function daysSince(dateStr) {
 }
 const daysUntil = (dateStr) => { const s = daysSince(dateStr); return s === null ? null : -s }
 
-export function computeAlerts({ workers = [], attendanceRecords = [], openings = [], furloughWorkers = [], staffingPlan = [] }) {
+export function computeAlerts({ workers = [], attendanceRecords = [], openings = [], furloughWorkers = [] }) {
   const alerts = []
 
   // ── Physical exam expirations (active workers) ──
@@ -35,10 +35,6 @@ export function computeAlerts({ workers = [], attendanceRecords = [], openings =
   if (pending) alerts.push({ id: 'fur-pending', severity: 'medium', title: `${pending} furloughed awaiting client decision`, detail: 'Return approval still pending', page: 'furlough' })
   const unknown = furloughWorkers.filter((w) => w.status === 'On Furlough' && w.workerIntent === 'Unknown').length
   if (unknown) alerts.push({ id: 'fur-intent', severity: 'info', title: `${unknown} furloughed with unknown return intent`, detail: 'Confirm who plans to return next season', page: 'furlough' })
-
-  // ── Staffing vs plan ──
-  const gap = staffingPlan.reduce((s, r) => s + Math.max(0, (r.target || 0) - (r.actual || 0)), 0)
-  if (gap) alerts.push({ id: 'staff-gap', severity: 'medium', title: `${gap} headcount short of plan`, detail: 'Below the AOP target', page: 'staffing' })
 
   return alerts
 }

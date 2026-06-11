@@ -5,7 +5,6 @@ import OverviewPage from './features/overview/OverviewPage'
 import DepartmentsPage from './features/departments/DepartmentsPage'
 import WorkersPage from './features/workers/WorkersPage'
 import OnboardingPage from './features/onboarding/OnboardingPage'
-import StaffingPage from './features/staffing/StaffingPage'
 import OpeningsPage from './features/openings/OpeningsPage'
 import WaitlistPage from './features/waitlist/WaitlistPage'
 import FurloughPage from './features/furlough/FurloughPage'
@@ -28,7 +27,6 @@ const PAGES = {
   departments: DepartmentsPage,
   workers: WorkersPage,
   onboarding: OnboardingPage,
-  staffing: StaffingPage,
   openings: OpeningsPage,
   waitlist: WaitlistPage,
   furlough: FurloughPage,
